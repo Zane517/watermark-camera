@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今日水印相机 · 打卡取证</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <h1>今日水印相机</h1>
+  <span class="sub">Today Watermark Camera · 打卡 / 考勤 / 实拍取证 · 纯前端零依赖 · 全程本地处理</span>
+  <button class="btn ghost tiny" id="keyBtn">配置定位 Key</button>
+</header>
+
+<div class="wrap">
+  <div>
+    <!-- 导入照片 -->
+    <div class="panel" style="margin-bottom:16px">
+      <h2>导入照片</h2>
+      <div id="uploadBox" class="upload">点击选择图片，或拖拽到此处<br>（支持 JPG / PNG）</div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
+      <button class="btn ghost block" id="camBtn">打开摄像头现场拍摄</button>
+      <video id="cam" playsinline autoplay muted></video>
+      <div id="camBtns" class="row" style="margin-top:8px;display:none">
+        <button class="btn green" id="shootBtn">拍摄</button>
+        <button class="btn ghost" id="stopCam">关闭摄像头</button>
+      </div>
+      <div class="hint">摄像头需在 <b>https</b> 或 <b>localhost</b> 下运行；本地直接双击打开时请用「选择图片」。</div>
+    </div>
+
+    <!-- 水印内容 -->
+    <div class="panel">
+      <h2>水印内容</h2>
+      <div class="grp">
+        <label>拍摄日期与时间</label>
+        <div class="posbar">
+          <input type="text" id="timeText" placeholder="自动获取当前时间">
+          <button class="btn ghost" id="refreshTime">现在</button>
+        </div>
+      </div>
+      <div class="cols">
+        <div class="grp"><label>纬度</label><input type="text" id="latV" placeholder="自动获取"></div>
+        <div class="grp"><label>经度</label><input type="text" id="lngV" placeholder="自动获取"></div>
+      </div>
+      <div class="grp">
+        <label>坐标系</label>
+        <div class="seg" id="crsSeg">
+          <button data-crs="WGS84坐标系" class="on">WGS84</button>
+          <button data-crs="GCJ02坐标系">GCJ-02</button>
+        </div>
+        <div class="hintline">浏览器定位 = WGS84；用「地址→经纬度」得到的是高德 GCJ-02，会自动切换。</div>
+      </div>
+      <div class="grp">
+        <label>地址 / 地点</label>
+        <div class="posbar">
+          <input type="text" id="addrV" placeholder="请输入拍摄地点（例如：某区某街道）">
+          <button class="btn ghost" id="autoPos">自动定位</button>
+        </div>
+        <div class="posbar" style="margin-top:6px">
+          <input type="text" id="addrQuery" placeholder="输入地址查经纬度，例如：广州市天河区…">
+          <button class="btn ghost" id="geoBtn">地址→经纬度</button>
+        </div>
+        <div class="st" id="posStatus"></div>
+        <div class="hintline">「自动定位」用浏览器定位并反查地址；「地址→经纬度」用高德地理编码把地址转成经纬度并填入。</div>
+      </div>
+      <div class="cols">
+        <div class="grp"><label>拍摄人 / ID</label><input type="text" id="idV" placeholder="请输入姓名或ID"></div>
+      </div>
+      <div class="grp"><label>备注</label><input type="text" id="memoV" placeholder="例如：例行巡检 / 现场实拍"></div>
+    </div>
+
+    <!-- 水印样式 -->
+    <div class="panel" style="margin-top:16px">
+      <h2>水印样式</h2>
+      <div class="grp">
+        <label>风格</label>
+        <div class="seg" id="styleSeg">
+          <button data-style="classic" class="on">经典</button>
+          <button data-style="clean">简洁</button>
+          <button data-style="corner">角落</button>
+        </div>
+      </div>
+      <div class="switchRow"><span>中央「现场拍照」水印</span><div class="switch on" id="swCenter"></div></div>
+      <div class="switchRow"><span>右下角弧形水印</span><div class="switch on" id="swArc"></div></div>
+      <div class="grp" style="margin-top:8px">
+        <label>弧形水印文字（可自定义）</label>
+        <input type="text" id="arcTextV" value="今日水印相机" placeholder="例如：今日水印相机 / 巡检记录 / 自定义文字">
+      </div>
+      <div class="switchRow"><span>显示时间</span><div class="switch on" id="swTime"></div></div>
+      <div class="switchRow"><span>显示经纬度</span><div class="switch on" id="swLng"></div></div>
+      <div class="switchRow"><span>显示地址</span><div class="switch on" id="swAddr"></div></div>
+      <div class="switchRow"><span>文字底衬（简洁 / 角落风格）</span><div class="switch on" id="swBg"></div></div>
+      <div class="grp" style="margin-top:8px">
+        <label>字号缩放</label>
+        <input type="range" id="scaleSlider" min="1.2" max="5" step="0.1" value="2.4">
+      </div>
+      <button class="btn block green" id="exportBtn">下载带水印原图</button>
+    </div>
+  </div>
+
+  <!-- 实时预览 -->
+  <div>
+    <div class="panel">
+      <h2>实时预览</h2>
+      <div class="stage" id="stage">
+        <img id="display" alt="预览">
+        <div class="ph" id="placeholder">还没有图片<br>点击左侧 <b>选择图片</b> 或 <b>现场拍摄</b><br>水印会自动叠加预览</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/geo.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/watermark.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
