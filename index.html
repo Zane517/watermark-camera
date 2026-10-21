@@ -9,7 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="apple-touch-icon" href="icons/icon.svg">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#242424">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f7">
+<meta name="theme-color" media="prefers-color-scheme: light" content="#f7f7f7">
 </head>
 <body>
 <header>
@@ -123,8 +123,10 @@
 <script src="js/watermark.js"></script>
 <script src="js/app.js"></script>
 <script>
-  // PWA：安全上下文（https / localhost）下注册 Service Worker，支持添加到主屏幕、离线可用
-  if ("serviceWorker" in navigator && window.isSecureContext) {
+  // PWA：在线（GitHub Pages）时注册 Service Worker 支持离线；
+  // Android 壳（appassets.androidplatform.net 虚拟域名）本地资源已持久、启动时有独立更新通道，跳过注册
+  var isLocalShell = location.hostname === "appassets.androidplatform.net";
+  if ("serviceWorker" in navigator && window.isSecureContext && !isLocalShell) {
     window.addEventListener("load", function () {
       navigator.serviceWorker.register("sw.js");
     });
