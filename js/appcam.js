@@ -25,7 +25,7 @@
   }
   function timeStr() { return state.manualTime ? state.time : nowStr(); }
 
-  /* WGS84 → GCJ-02：仅用于高德反查入参（地址更准），存储与展示始终 WGS84 */
+  /* WGS84 → GCJ-02：仅用于高德反查入参，存储与展示始终 WGS84 */
   function wgs2gcj(lng, lat) {
     if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lng, lat];
     var PI = 3.14159265358979324, A = 6378245, EE = 0.00669342162296594323;
@@ -72,7 +72,7 @@
   function reverseAddr() {
     var key = localStorage.getItem("wm.amap.key");
     if (!key || !state.lng || !state.lat) return;
-    var g = wgs2gcj(+state.lng, +state.lat); // 入参 WGS84 → GCJ-02，反查地址才准
+    var g = wgs2gcj(+state.lng, +state.lat);
     fetch("https://restapi.amap.com/v3/geocode/regeo?key=" + encodeURIComponent(key) +
           "&location=" + g[0] + "," + g[1])
       .then(function (r) { return r.json(); }).then(function (j) {
