@@ -6,7 +6,7 @@
 <title>水印相机</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* App 首页：全屏相机 + 实时水印（与网页版分离，水印共用 watermark.js） */
+/* App 首页：全屏相机 + 实时水印（与网页版分离，水印共用 watermark.js；无顶栏） */
 :root{--safe-top:0px;--safe-bottom:0px}
 html,body{height:100%;overflow:hidden;background:#000}
 body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
@@ -14,8 +14,6 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 #video,#shot{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0}
 /* 取景画布：居中，宽高按画幅比例由 JS 设定（4:3 / 16:9 / 1:1） */
 #overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5}
-#top{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;gap:10px;align-items:center;padding:calc(10px + max(env(safe-area-inset-top,0px),var(--safe-top,0px))) 14px 16px;background:linear-gradient(rgba(0,0,0,.55),transparent);color:#fff}
-.chip{font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:none;color:#fff;cursor:pointer;white-space:nowrap}
 #bottom{display:flex;align-items:center;justify-content:space-between;padding:14px 22px calc(16px + max(env(safe-area-inset-bottom,0px),var(--safe-bottom,0px)));background:rgba(16,16,16,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 #shutter{width:72px;height:72px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.4);cursor:pointer;transition:transform .12s var(--ease,cubic-bezier(.2,0,0,1))}
 #shutter:active{transform:scale(.9)}
@@ -61,11 +59,6 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
   <video id="video" playsinline autoplay muted></video>
   <img id="shot" alt="">
   <canvas id="overlay"></canvas>
-  <div id="top">
-    <span class="chip" id="locChip">定位中…</span>
-    <span style="flex:1"></span>
-    <button class="chip" id="editTop">编辑水印</button>
-  </div>
   <div id="flash"></div>
 </div>
 
@@ -104,7 +97,7 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 
   <div class="mgCap">水印样式</div>
   <div class="mg">
-    <div class="mrow"><label>风格</label><div class="seg" id="styleSeg"><button data-style="classic" class="on" data-s="classic">经典</button><button data-s="clean">简洁</button><button data-s="corner">角落</button></div></div>
+    <div class="mrow"><label>风格</label><div class="seg" id="styleSeg"><button data-s="classic" class="on">经典</button><button data-s="clean">简洁</button><button data-s="corner">角落</button></div></div>
     <div class="mrow"><label>中央水印</label><div class="switch on" id="swCenter"></div></div>
     <div class="mrow"><label>经纬地址</label><div class="switch on" id="swGeo"></div></div>
   </div>
