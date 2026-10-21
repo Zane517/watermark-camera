@@ -1,8 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "published": "2026-10-22",
   "files": [
     "index.html",
+    "app.html",
     "css/style.css",
     "js/config.js",
     "js/utils.js",
@@ -10,6 +11,8 @@
     "js/camera.js",
     "js/watermark.js",
     "js/app.js",
+    "js/appcam.js",
+    "js/appedit.js",
     "manifest.webmanifest",
     "sw.js",
     "icons/icon.svg"

@@ -8,6 +8,7 @@ on:
       - 'android/**'
       - '.github/workflows/build-apk.yml'
       - 'index.html'
+      - 'app.html'
       - 'css/**'
       - 'js/**'
       - 'icons/**'
@@ -26,7 +27,7 @@ jobs:
       - name: Sync web app into APK assets
         run: |
           mkdir -p android/app/src/main/assets/www
-          cp index.html manifest.webmanifest sw.js version.json android/app/src/main/assets/www/
+          cp index.html app.html manifest.webmanifest sw.js version.json android/app/src/main/assets/www/
           cp -r css js icons android/app/src/main/assets/www/
 
       - name: Set up JDK 17
