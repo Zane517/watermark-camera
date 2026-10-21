@@ -93,7 +93,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        web.addJavascriptInterface(new NativeBridge(this), "AppNative");
+        web.addJavascriptInterface(new NativeBridge(this, web), "AppNative");
         web.loadUrl(START_URL);
         Updater.start(this, web);
 
