@@ -14,6 +14,7 @@
   }
   bindText("fTime", "time", true); bindText("fLat", "lat"); bindText("fLng", "lng");
   bindText("fAddr", "addr"); bindText("fId", "person"); bindText("fMemo", "memo");
+  bindText("fArc", "arcText");
 
   $("nowBtn").addEventListener("click", function () {
     state.manualTime = false; persist(); C.fillForm(); C.toast("已恢复自动时间");
@@ -43,7 +44,7 @@
     });
     el.classList.toggle("on", !!state[key]);
   }
-  bindSwitch("swCenter", "center"); bindSwitch("swGeo", "geo");
+  bindSwitch("swCenter", "center"); bindSwitch("swGeo", "geo"); bindSwitch("swArc", "arc");
 
   /* 点水印哪行就编辑哪行：命中 lastLayout 包围盒 → 打开面板并聚焦对应字段 */
   function lineTarget(text) {
