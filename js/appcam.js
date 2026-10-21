@@ -1,10 +1,10 @@
-/* App 相机页核心：取景、逐帧调用网页版 watermark.js 渲染水印、定位、拍照保存（UI 绑定见 appedit.js） */
+/* App 相机页核心：取景、逐帧调用网页版 watermark.js 渲染水印、定位（原生桥优先）、拍照保存 */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var video = $("video"), overlay = $("overlay"), viewBox = $("viewBox"),
       toastEl = $("toast"), locChip = $("locChip");
-  var buf = document.createElement("canvas"); // 底图缓冲：先按画幅 cover 裁切，再交给网页版引擎叠水印
+  var buf = document.createElement("canvas"); // 底图缓冲：按画幅 cover 裁切后交给网页版引擎叠水印
   var stream = null, facing = "environment", mode = "camera", img = null;
 
   var state = { time:"", lat:"", lng:"", addr:"", person:"", memo:"",
@@ -61,7 +61,7 @@
       .catch(function (e) { toast("摄像头不可用" + (e && e.name ? "：" + e.name : "")); });
   }
 
-  /* 连续定位：不取旧缓存，首次修复后持续精修，精度优于 20m 或超时即停 */
+  /* 定位：原生桥优先（GPS，规避 WebView 无 GMS 退化），失败回退 watchPosition 连续精修 */
   var watchId = null, bestAcc = Infinity, addrAsked = false, locTimer = null;
   function stopWatch() {
     if (watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
@@ -69,19 +69,38 @@
     clearTimeout(locTimer);
   }
   function locate() {
-    if (!navigator.geolocation) { locChip.textContent = "不支持定位"; return; }
     stopWatch();
     bestAcc = Infinity; addrAsked = false;
     locChip.textContent = "定位中…";
+    if (window.AppNative) {
+      AppNative.requestLocation();
+      return;
+    }
+    jsLocate();
+  }
+  function applyFix(lat, lng, acc) {
+    state.lat = lat.toFixed(6);
+    state.lng = lng.toFixed(6);
+    locChip.textContent = "已定位 ±" + (acc ? Math.round(acc) : "?") + "m";
+    fillForm(); persist();
+    if (!addrAsked) { addrAsked = true; reverseAddr(); }
+  }
+  window.__onNativeLoc = function (lat, lng, acc) {
+    if (lat == null || isNaN(lat)) { jsLocate(); return; }
+    bestAcc = acc || 0;
+    applyFix(lat, lng, acc);
+    stopWatch();
+  };
+  window.__onNativeLocFail = function () { jsLocate(); };
+
+  function jsLocate() {
+    if (!navigator.geolocation) { locChip.textContent = "不支持定位"; return; }
+    bestAcc = Infinity;
     watchId = navigator.geolocation.watchPosition(function (pos) {
       var acc = pos.coords.accuracy || 0;
       if (acc > 0 && acc >= bestAcc) return;
       bestAcc = acc;
-      state.lat = pos.coords.latitude.toFixed(6);
-      state.lng = pos.coords.longitude.toFixed(6);
-      locChip.textContent = "已定位 ±" + (acc ? Math.round(acc) : "?") + "m";
-      fillForm(); persist();
-      if (!addrAsked) { addrAsked = true; reverseAddr(); }
+      applyFix(pos.coords.latitude, pos.coords.longitude, acc);
       if (bestAcc > 0 && bestAcc <= 20) stopWatch();
     }, function () {
       locChip.textContent = bestAcc === Infinity ? "定位失败，点此重试" : "已定位 ±" + Math.round(bestAcc) + "m";
@@ -125,7 +144,6 @@
     var s = Math.max(W / sw, H / sh), dw = sw * s, dh = sh * s;
     ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
   }
-  /* 画幅：在可视区内内切出目标比例的取景框 */
   function frameBox(W, H) {
     var r = state.aspect === "16:9" ? 16 / 9 : state.aspect === "1:1" ? 1 : 4 / 3;
     var fw = W, fh = W / r;
