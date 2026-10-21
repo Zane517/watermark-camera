@@ -12,7 +12,8 @@ html,body{height:100%;overflow:hidden;background:#000}
 body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
 #viewBox{position:relative;flex:1;overflow:hidden;background:#000}
 #video,#shot{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0}
-#overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:5}
+/* 取景画布：居中，宽高按画幅比例由 JS 设定（4:3 / 16:9 / 1:1） */
+#overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5}
 #top{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;gap:10px;align-items:center;padding:calc(10px + max(env(safe-area-inset-top,0px),var(--safe-top,0px))) 14px 16px;background:linear-gradient(rgba(0,0,0,.55),transparent);color:#fff}
 .chip{font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:none;color:#fff;cursor:pointer;white-space:nowrap}
 #bottom{display:flex;align-items:center;justify-content:space-between;padding:14px 22px calc(16px + max(env(safe-area-inset-bottom,0px),var(--safe-bottom,0px)));background:rgba(16,16,16,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
@@ -45,7 +46,7 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 .mrow .switch{margin-left:auto}
 </style>
 <script>
-  // 壳层回传的系统安全区（刘海/小白条），与 env() 取较大值
+  // 壳层回传的系统安全区（状态栏/刘海/小白条），与 env() 取较大值
   window.__setInsets = function (top, bottom) {
     document.documentElement.style.setProperty("--safe-top", top + "px");
     document.documentElement.style.setProperty("--safe-bottom", bottom + "px");
@@ -92,6 +93,11 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
   <div class="mg">
     <div class="mrow"><label>拍摄人 / ID</label><input type="text" id="fId" placeholder="请输入姓名或ID"></div>
     <div class="mrow"><label>备注</label><input type="text" id="fMemo" placeholder="例如：例行巡检"></div>
+  </div>
+
+  <div class="mgCap">拍摄画幅</div>
+  <div class="mg">
+    <div class="mrow"><label>画幅</label><div class="seg" id="aspectSeg"><button data-a="4:3" class="on">4:3</button><button data-a="16:9">16:9</button><button data-a="1:1">1:1</button></div></div>
   </div>
 
   <div class="mgCap">水印样式</div>
