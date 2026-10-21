@@ -61,5 +61,4 @@
     facing = (facing === "environment") ? "user" : "environment";
     C.facingSet(facing); C.startCam();
   });
-  $("toolBtn").addEventListener("click", function () { location.href = "index.html"; });
 })();
