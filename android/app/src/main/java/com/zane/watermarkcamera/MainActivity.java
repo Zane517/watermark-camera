@@ -2,18 +2,16 @@ package com.zane.watermarkcamera;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.media.MediaScannerConnection;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.util.Base64;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.webkit.GeolocationPermissions;
-import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -23,15 +21,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-
-/**
- * 本地封装壳：首页为相机水印页（app.html），完整网页工具为 index.html；
- * 虚拟域名加载内置资源（离线可用），后台检查在线更新；
- * NativeBridge 提供拍照保存相册能力（AppNative.saveImage / requestStorage）。
- */
+/** 壳：首页相机页 app.html、本地资源加载、在线更新、全屏沉浸适配 */
 public class MainActivity extends Activity {
 
     private static final String START_URL = "https://" + LocalAssets.HOST + "/app.html";
@@ -40,6 +30,8 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private ValueCallback<Uri[]> filePathCallback;
+    private int insetTop = 0;
+    private int insetBottom = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,10 +39,11 @@ public class MainActivity extends Activity {
 
         web = new WebView(this);
         setContentView(web);
+        setupImmersive();
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);              // localStorage：高德 Key / 水印状态
+        s.setDomStorageEnabled(true);
         s.setGeolocationEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(false);
@@ -62,6 +55,12 @@ public class MainActivity extends Activity {
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
                 WebResourceResponse local = assets.intercept(req.getUrl());
                 return local != null ? local : super.shouldInterceptRequest(view, req);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                applyInsets();
             }
         });
 
@@ -95,15 +94,10 @@ public class MainActivity extends Activity {
             }
         });
 
-        // JS 桥：拍照结果写入系统相册
-        web.addJavascriptInterface(new NativeBridge(), "AppNative");
-
+        web.addJavascriptInterface(new NativeBridge(this), "AppNative");
         web.loadUrl(START_URL);
-
-        // 后台检查在线更新（version.json），离线时静默跳过
         Updater.start(this, web);
 
-        // 摄像头 + 定位一次性申请；存储仅 Android 9 及以下需要（Q+ 走 MediaStore 免权限）
         if (Build.VERSION.SDK_INT >= 29) {
             requestPermissions(new String[]{
                     Manifest.permission.CAMERA,
@@ -120,57 +114,44 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** 供 JS 调用：base64 JPEG/PNG 落库相册 Pictures/AI 目录 */
-    public class NativeBridge {
-        @JavascriptInterface
-        public String saveImage(String base64, String name) {
-            try {
-                byte[] data = Base64.decode(base64, Base64.NO_WRAP);
-                String mime = (name != null && name.toLowerCase().endsWith(".png")) ? "image/png" : "image/jpeg";
-                if (name == null || name.isEmpty()) name = "WM_" + System.currentTimeMillis() + ".jpg";
-
-                if (Build.VERSION.SDK_INT >= 29) {
-                    ContentValues v = new ContentValues();
-                    v.put(MediaStore.Images.Media.DISPLAY_NAME, name);
-                    v.put(MediaStore.Images.Media.MIME_TYPE, mime);
-                    v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/AI");
-                    v.put(MediaStore.Images.Media.IS_PENDING, 1);
-                    Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
-                    if (uri == null) return "err:insert";
-                    OutputStream os = getContentResolver().openOutputStream(uri);
-                    if (os == null) return "err:stream";
-                    os.write(data);
-                    os.close();
-                    v.clear();
-                    v.put(MediaStore.Images.Media.IS_PENDING, 0);
-                    getContentResolver().update(uri, v, null, null);
-                } else {
-                    File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "AI");
-                    if (!dir.exists() && !dir.mkdirs()) return "err:dir";
-                    File out = new File(dir, name);
-                    FileOutputStream fos = new FileOutputStream(out);
-                    fos.write(data);
-                    fos.close();
-                    MediaScannerConnection.scanFile(MainActivity.this,
-                            new String[]{out.getAbsolutePath()}, null, null);
+    // 全屏沉浸：状态栏隐藏，小白条透明浮于内容之上，系统栏滑动临时呼出
+    private void setupImmersive() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+            getWindow().setNavigationBarColor(Color.TRANSPARENT);
+            WindowInsetsController ctrl = getWindow().getInsetsController();
+            if (ctrl != null) {
+                ctrl.hide(WindowInsets.Type.statusBars());
+                ctrl.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+            web.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+                @Override
+                public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
+                    insetTop = insets.getDisplayCutout() != null
+                            ? insets.getDisplayCutout().getSafeInsetTop() : 0;
+                    insetBottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
+                    applyInsets();
+                    return insets;
                 }
-                return "ok";
-            } catch (Exception e) {
-                return "err:" + e.getClass().getSimpleName();
-            }
+            });
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
+    }
 
-        /** 仅 Android 9 及以下：存储权限被拒时由 JS 触发再次申请 */
-        @JavascriptInterface
-        public void requestStorage() {
-            if (Build.VERSION.SDK_INT < 29) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_PERMISSIONS);
-                    }
-                });
-            }
+    // 安全区回传页面（与 CSS env() 取较大值兜底）
+    private void applyInsets() {
+        if (web != null) {
+            web.evaluateJavascript(
+                    "window.__setInsets&&window.__setInsets(" + insetTop + "," + insetBottom + ");",
+                    null);
         }
     }
 
