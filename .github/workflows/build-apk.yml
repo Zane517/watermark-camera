@@ -1,4 +1,4 @@
-# 推送 android/ 目录时自动构建 APK，产物在 Actions 运行页的 Artifacts 里下载
+# 推送 android/ 或网页文件变更时自动构建 APK，产物在 Actions 运行页的 Artifacts 里下载
 name: Build APK
 
 on:
@@ -7,6 +7,13 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/build-apk.yml'
+      - 'index.html'
+      - 'css/**'
+      - 'js/**'
+      - 'icons/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'version.json'
   workflow_dispatch:
 
 jobs:
@@ -15,6 +22,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Sync web app into APK assets
+        run: |
+          mkdir -p android/app/src/main/assets/www
+          cp index.html manifest.webmanifest sw.js version.json android/app/src/main/assets/www/
+          cp -r css js icons android/app/src/main/assets/www/
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

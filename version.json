@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "published": "2026-10-22",
+  "files": [
+    "index.html",
+    "css/style.css",
+    "js/config.js",
+    "js/utils.js",
+    "js/geo.js",
+    "js/camera.js",
+    "js/watermark.js",
+    "js/app.js",
+    "manifest.webmanifest",
+    "sw.js",
+    "icons/icon.svg"
+  ]
+}
