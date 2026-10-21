@@ -59,14 +59,13 @@
     render();
   };
 
-  // 自动定位：浏览器定位 + 反查地址
+  // 自动定位：浏览器定位（WGS84） + 反查地址
   $("autoPos").onclick = function () {
     setStatus("正在定位…", "");
     WM.geo.locate().then(function (c) {
       latV.value = c.lat.toFixed(6);
       lngV.value = c.lng.toFixed(6);
-      setStatus("已定位：" + c.lat.toFixed(4) + ", " + c.lng.toFixed(4), "ok");
-      setCrs("WGS84坐标系");
+      setStatus("已定位：" + c.lat.toFixed(4) + ", " + c.lng.toFixed(4) + "（WGS84）", "ok");
       render();
       if (!WM.config.getAmapKey()) {
         setStatus("已定位（未配置 Key，跳过地址反查）", "warn");
@@ -81,7 +80,7 @@
     });
   };
 
-  // 地址转经纬度
+  // 地址转经纬度（高德返回 GCJ-02，geo.js 已本地转换为 WGS84）
   $("geoBtn").onclick = function () {
     var addr = addrQuery.value.trim();
     if (!addr) { setStatus("请先输入要查询的地址", "err"); return; }
@@ -91,8 +90,7 @@
       latV.value = r.lat.toFixed(6);
       lngV.value = r.lng.toFixed(6);
       if (!addrV.value) addrV.value = r.formatted;
-      setCrs("GCJ02坐标系");
-      setStatus("已解析：" + r.lat.toFixed(4) + ", " + r.lng.toFixed(4) + "（GCJ-02）", "ok");
+      setStatus("已解析：" + r.lat.toFixed(4) + ", " + r.lng.toFixed(4) + "（WGS84）", "ok");
       render();
     }).catch(function (e) {
       if (e && e.message === "NO_KEY") setStatus("未配置高德 Key，点右上角「配置定位 Key」填写", "err");
@@ -100,17 +98,6 @@
       else setStatus("解析失败，请检查网络", "err");
     });
   };
-
-  // 坐标系：WGS84 / GCJ-02 切换
-  function setCrs(v) {
-    opt.crs = v;
-    Array.prototype.forEach.call($("crsSeg").children, function (b) {
-      b.classList.toggle("on", b.dataset.crs === v);
-    });
-  }
-  Array.prototype.forEach.call($("crsSeg").children, function (b) {
-    b.onclick = function () { setCrs(b.dataset.crs); render(); };
-  });
 
   // 摄像头：打开 / 拍摄 / 关闭
   camBtn.onclick = function () {
@@ -133,7 +120,7 @@
   // 导入图片（点击 / 拖拽）
   uploadBox.onclick = function () { fileInput.click(); };
   uploadBox.ondragover = function (e) { e.preventDefault(); uploadBox.style.borderColor = "var(--acc)"; };
-  uploadBox.ondragleave = function () { uploadBox.style.borderColor = "var(--line)"; };
+  uploadBox.ondragleave = function (e) { uploadBox.style.borderColor = "var(--line)"; };
   uploadBox.ondrop = function (e) {
     e.preventDefault();
     uploadBox.style.borderColor = "var(--line)";
