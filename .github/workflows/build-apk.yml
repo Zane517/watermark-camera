@@ -1,4 +1,5 @@
 # 推送 android/ 或网页文件变更时自动构建 APK，产物在 Actions 运行页的 Artifacts 里下载
+# 失败时把 Gradle 报错尾部转为 annotations，便于通过 API 直接读取错误原因
 name: Build APK
 
 on:
@@ -42,7 +43,13 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build debug APK
-        run: gradle -p android :app:assembleDebug --no-daemon
+        run: |
+          set -o pipefail
+          gradle -p android :app:assembleDebug --no-daemon > build.log 2>&1 || {
+            echo "::error title=GradleError::"
+            grep -E "error:|What went wrong|Execution failed|Could not|Caused by" build.log | tail -10 | while IFS= read -r l; do echo "::error::"; done
+            exit 1
+          }
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
