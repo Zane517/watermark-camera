@@ -7,7 +7,7 @@
 [![Build APK](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml)
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-277AF7?logo=githubpages)](https://zane517.github.io/watermark-camera/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-36D167.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.2.0-3482ff.svg)](#十更新日志)
+[![Version](https://img.shields.io/badge/version-1.3.0-3482ff.svg)](#十更新日志)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-36D167.svg)](#三模块架构)
 
 [在线演示](https://zane517.github.io/watermark-camera/) · [快速开始](#二快速开始) · [模块架构](#三模块架构) · [配置](#四配置高德-web-服务key可选) · [更新日志](#十更新日志)
@@ -26,7 +26,7 @@
 - **零依赖**：原生 HTML / CSS / JavaScript，无框架、无 npm 依赖、无必需构建步骤。
 - **完整取证要素**：时间、经纬度、坐标系（WGS84 / GCJ-02）、地理位置、拍摄人、备注，全部可自动获取或手动修正。
 - **多形态分发**：在线 PWA、单文件 HTML、本地静态服务、Android APK 四种部署方式。
-- **离线可用**：Service Worker 缓存应用外壳，「添加到主屏幕」后可离线完成拍摄与导出。
+- **离线可用**：PWA 侧由 Service Worker 缓存应用外壳；APK 侧 Web 资源内置，完全离线可运行。
 - **双主题 UI**：基于 [Miuix](https://github.com/compose-miuix-ui/miuix)（HyperOS 风格）官方色板，跟随系统明暗模式自动切换。
 
 ---
@@ -47,13 +47,17 @@
 
 
 
-### 2.4 Android APK
+### 2.4 Android APK（本地内置 + 自动更新）
 
-仓库内置 WebView 壳工程（），由 GitHub Actions 自动构建：
+仓库内置 WebView 壳工程（），CI 构建时将全部 Web 资源同步进 APK（）：
 
-1. **Actions → Build APK → Run workflow**（推送  变更也会自动触发）；
+1. **Actions → Build APK → Run workflow**（推送  或网页文件变更均会自动触发）；
 2. 在运行详情页 **Artifacts** 下载 ，获得 ；
-3. 安装后首次启动会申请摄像头与定位权限。壳内加载在线版，网页更新无需重装。
+3. 安装后首次启动会申请摄像头与定位权限。
+
+**运行与更新机制**：壳通过虚拟域名  加载内置资源，**断网完全可用**；启动时后台读取仓库根目录 ，发现更高版本时静默下载变更文件至应用私有目录并刷新页面（离线或校验失败自动跳过，失败即整体放弃，不产生半更新）。因此网页日常迭代无需重装 APK，仅壳工程自身升级或全新安装时才需要下载新包。
+
+> 首次安装版本为构建时内置的基线； 的  字段在发布网页变更时递增， 列出需同步的文件清单。
 
 ---
 
@@ -71,9 +75,12 @@
 |  | 摄像头启停与抓帧 |
 |  | 水印绘制，仅依赖状态与画布，无 DOM 耦合 |
 |  | UI 绑定与主流程 |
-|  ·  | PWA 离线缓存与安装清单 |
+|  ·  | PWA 离线缓存与安装清单（在线模式） |
 |  | 将样式与脚本内联为单文件 HTML |
-|  | WebView 壳工程与 CI 打包配置 |
+|  | 壳：WebView 配置、权限、选图、页面加载 |
+|  | 资源拦截器：更新目录优先，APK assets 兜底 |
+|  | 后台版本检查与文件同步（防半更新） |
+|  | 发布版本号与待同步文件清单 |
 
 ---
 
@@ -85,7 +92,7 @@
 2. **服务平台必须选择「Web 服务」**，误选「Web 端 (JS API)」会返回 ；
 3. 页面右上角「配置定位 Key」→ 粘贴保存。
 
-Key 仅写入浏览器 （键名 ），不会进入任何源码文件或远端服务器；清空输入框即可删除。唯一发生的外部请求是由你在界面主动触发的高德地理编码 API 调用。
+Key 仅写入浏览器 （键名 ），不会进入任何源码文件或远端服务器；清空输入框即可删除。APK 与在线版的存储域不同，首次在新环境使用需重新配置一次。
 
 ---
 
@@ -131,7 +138,8 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（）项目  中的
 | 图片导入与水印导出 | ✅ | ✅ | ✅ |
 | 摄像头拍摄 | ✅ | ❌（用「选择图片」） | ✅ |
 | 浏览器定位 | ✅ | 视浏览器而定 | ✅ |
-| PWA 安装 / 离线 | ✅ | ❌ | —（WebView 壳） |
+| PWA 安装 / 离线 | ✅ | ❌ | —（本地资源内置） |
+| 断网运行 | 依赖 SW 缓存 | ✅ | ✅（资源内置，无需网络） |
 
 支持 Chrome / Edge / Firefox / Safari 等现代浏览器；建议使用近两个大版本。局域网  不属于安全上下文，摄像头同样不可用。
 
@@ -140,8 +148,9 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（）项目  中的
 ## 八、隐私与安全
 
 - 图片、水印数据、定位信息与 Key 均不离开本机，无统计 SDK、无 Cookie、无第三方存储。
-- 除用户主动触发的高德地理编码请求外，无任何外部网络请求。
-- Android 壳工程仅提供 WebView 容器与权限桥接，不采集、不回传任何数据。
+- 除用户主动触发的高德地理编码请求外，在线模式无其他外部网络请求。
+- APK 壳启动时会静默访问一次 （内容仅为版本号与文件清单）用于检查更新，离线或失败时自动跳过；除此以外无任何外发数据。
+- Android 壳工程仅提供 WebView 容器与权限桥接，不采集、不回传任何数据；资源读取带路径穿越防护。
 
 ---
 
@@ -155,6 +164,7 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（）项目  中的
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.3.0 | 2026-10-22 | APK 本地内置 Web 资源（完全离线可用）； 启动静默增量更新、失败整体回退；CI 构建同步网页资源；壳环境跳过 SW 注册 |
 | v1.2.0 | 2026-10-22 | Miuix 设计语言改版：官方双主题色板、毛玻璃顶栏、PWA 图标与主题色同步，SW 缓存升 v2 |
 | v1.1.0 | 2026-10-22 | Android WebView 壳 + GitHub Actions 自动构建 APK |
 | v1.0.2 | 2026-10-22 | PWA：安装清单、离线缓存、应用图标 |
