@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -132,14 +133,17 @@ public class NativeBridge {
         }
     }
 
-    private Location awaitSingle(LocationManager lm, String provider, long ms) {
+    private volatile CountDownLatch pendingLatch;
+    private volatile Location[] pendingOut;
+
+    private Location awaitSingle(LocationManager lm, final String provider, long ms) {
+        final CountDownLatch latch = new CountDownLatch(1);
+        final Location[] out = new Location[1];
         LocationListener lis = new LocationListener() {
             @Override
             public void onLocationChanged(Location l) {
-                if (pendingLatch != null) {
-                    pendingOut[0] = l;
-                    pendingLatch.countDown();
-                }
+                out[0] = l;
+                latch.countDown();
             }
             @Override public void onStatusChanged(String p, int extra, android.os.Bundle b) {}
             @Override public void onProviderEnabled(String p) {}
@@ -147,22 +151,15 @@ public class NativeBridge {
         };
         try {
             if (!lm.isProviderEnabled(provider)) return null;
-            pendingLatch = new CountDownLatch(1);
-            pendingOut = new Location[1];
             lm.requestSingleUpdate(provider, lis, Looper.getMainLooper());
-            pendingLatch.await(ms, TimeUnit.MILLISECONDS);
-            return pendingOut[0];
+            latch.await(ms, TimeUnit.MILLISECONDS);
+            return out[0];
         } catch (Throwable t) {
             return null;
         } finally {
-            try { lm.removeUpdates(lis); } catch (Throwable ignored) {}
-            pendingLatch = null;
-            pendingOut = null;
+            try { lm.removeUpdates(lis); } catch (Throwable ignored) { }
         }
     }
-
-    private volatile CountDownLatch pendingLatch;
-    private volatile Location[] pendingOut;
 
     private Location better(Location a, Location b) {
         if (a == null) return b;
