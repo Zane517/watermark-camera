@@ -25,6 +25,32 @@
   }
   function timeStr() { return state.manualTime ? state.time : nowStr(); }
 
+  /* WGS84 → GCJ-02：仅用于高德反查入参（地址更准），存储与展示始终 WGS84 */
+  function wgs2gcj(lng, lat) {
+    if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lng, lat];
+    var PI = 3.14159265358979324, A = 6378245, EE = 0.00669342162296594323;
+    function tL(x, y) {
+      var r = -100 + 2*x + 3*y + 0.2*y*y + 0.1*x*y + 0.2*Math.sqrt(Math.abs(x));
+      r += (20*Math.sin(6*x*PI) + 20*Math.sin(2*x*PI))*2/3
+         + (20*Math.sin(y*PI) + 40*Math.sin(y/3*PI))*2/3
+         + (160*Math.sin(y/12*PI) + 320*Math.sin(y*PI/30))*2/3;
+      return r;
+    }
+    function tG(x, y) {
+      var r = 300 + x + 2*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x));
+      r += (20*Math.sin(6*x*PI) + 20*Math.sin(2*x*PI))*2/3
+         + (20*Math.sin(x*PI) + 40*Math.sin(x/3*PI))*2/3
+         + (150*Math.sin(x/12*PI) + 300*Math.sin(x/30*PI))*2/3;
+      return r;
+    }
+    var dLa = tL(lng - 105, lat - 35), dLo = tG(lng - 105, lat - 35);
+    var rl = lat / 180 * PI, m = Math.sin(rl);
+    m = 1 - EE * m * m;
+    var sm = Math.sqrt(m);
+    return [lng + dLo * 180 / (A / sm * Math.cos(rl) * PI),
+            lat + dLa * 180 / ((A * (1 - EE)) / (m * sm) * PI)];
+  }
+
   function stopCam() { if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; } }
   function startCam() {
     stopCam();
@@ -33,7 +59,6 @@
       .then(function (s) { stream = s; video.srcObject = s; mode = "camera"; video.play(); })
       .catch(function (e) { toast("摄像头不可用" + (e && e.name ? "：" + e.name : "")); });
   }
-
   function locate() {
     if (!navigator.geolocation) { locChip.textContent = "不支持定位"; return; }
     locChip.textContent = "定位中…";
@@ -47,8 +72,9 @@
   function reverseAddr() {
     var key = localStorage.getItem("wm.amap.key");
     if (!key || !state.lng || !state.lat) return;
+    var g = wgs2gcj(+state.lng, +state.lat); // 入参 WGS84 → GCJ-02，反查地址才准
     fetch("https://restapi.amap.com/v3/geocode/regeo?key=" + encodeURIComponent(key) +
-          "&location=" + state.lng + "," + state.lat)
+          "&location=" + g[0] + "," + g[1])
       .then(function (r) { return r.json(); }).then(function (j) {
         if (!j || !j.regeocode) return;
         var a = j.regeocode.addressComponent || {};
@@ -57,7 +83,6 @@
         if (s) { state.addr = s; fillForm(); persist(); locChip.textContent = "已反查地址"; }
       }).catch(function () {});
   }
-
   function fit() {
     var dpr = window.devicePixelRatio || 1;
     var w = viewBox.clientWidth, h = viewBox.clientHeight;
@@ -128,7 +153,6 @@
     drawMark(d.w, d.h);
     requestAnimationFrame(drawFrame);
   }
-
   function shoot() {
     if (!overlay.width) return;
     var flash = $("flash");
@@ -152,19 +176,16 @@
     img.onload = function () { mode = "image"; toast("已导入 · 点击画面编辑水印"); locate(); };
     img.src = URL.createObjectURL(f);
   }
+  function openSheet() { $("sheet").classList.add("open"); $("scrim").classList.add("open"); }
+  function closeSheet() { $("sheet").classList.remove("open"); $("scrim").classList.remove("open"); }
   function fillForm() {
     $("fTime").value = timeStr(); $("fLat").value = state.lat; $("fLng").value = state.lng;
     $("fAddr").value = state.addr; $("fId").value = state.person; $("fMemo").value = state.memo;
   }
-  function openSheet() { $("sheet").classList.add("open"); $("scrim").classList.add("open"); }
-  function closeSheet() { $("sheet").classList.remove("open"); $("scrim").classList.remove("open"); }
-
   window.CAM = { state: state, persist: persist, toast: toast, locate: locate,
                  startCam: startCam, shoot: shoot, loadFile: loadFile,
                  fillForm: fillForm, openSheet: openSheet, closeSheet: closeSheet,
-                 facingSet: function (f) { facing = f; },
-                 camMode: function () { return "camera"; } };
-
+                 facingSet: function (f) { facing = f; } };
   setInterval(function () {
     clock.textContent = nowStr();
     if (!state.manualTime && document.activeElement !== $("fTime")) $("fTime").value = nowStr();
