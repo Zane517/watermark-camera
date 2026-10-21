@@ -10,7 +10,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowInsets;
-import android.view.WindowInsetsController;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -21,7 +20,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-/** 壳：首页相机页 app.html、本地资源加载、在线更新、全屏沉浸适配 */
+/** 壳：首页相机页 app.html、本地资源加载、在线更新、沉浸式融入状态栏适配 */
 public class MainActivity extends Activity {
 
     private static final String START_URL = "https://" + LocalAssets.HOST + "/app.html";
@@ -114,22 +113,19 @@ public class MainActivity extends Activity {
         }
     }
 
-    // 全屏沉浸：状态栏隐藏，小白条透明浮于内容之上，系统栏滑动临时呼出
+    // 融入状态栏：页面延伸到状态栏之后，状态栏与小白条保持可见且透明；安全区回传给页面
     private void setupImmersive() {
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(Color.TRANSPARENT);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             getWindow().setDecorFitsSystemWindows(false);
-            getWindow().setStatusBarColor(Color.TRANSPARENT);
-            getWindow().setNavigationBarColor(Color.TRANSPARENT);
-            WindowInsetsController ctrl = getWindow().getInsetsController();
-            if (ctrl != null) {
-                ctrl.hide(WindowInsets.Type.statusBars());
-                ctrl.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
             web.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
                 @Override
                 public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
-                    insetTop = insets.getDisplayCutout() != null
+                    int sb = insets.getInsets(WindowInsets.Type.statusBars()).top;
+                    int dc = insets.getDisplayCutout() != null
                             ? insets.getDisplayCutout().getSafeInsetTop() : 0;
+                    insetTop = Math.max(sb, dc);
                     insetBottom = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
                     applyInsets();
                     return insets;
@@ -140,8 +136,6 @@ public class MainActivity extends Activity {
                     View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         }
     }
