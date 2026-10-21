@@ -6,7 +6,7 @@
 <title>水印相机</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* App 首页：全屏相机 + 实时水印（与网页版 index.html 分离） */
+/* App 首页：全屏相机 + 实时水印（与网页版 index.html 分离，水印绘制共用 watermark.js） */
 html,body{height:100%;overflow:hidden;background:#000}
 body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
 #viewBox{position:relative;flex:1;overflow:hidden;background:#000}
@@ -99,6 +99,9 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 
 <div id="toast"></div>
 <input type="file" id="fileInput" accept="image/*" hidden>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/watermark.js"></script>
 <script src="js/appcam.js"></script>
 <script src="js/appedit.js"></script>
 </body>
