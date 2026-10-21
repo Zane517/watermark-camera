@@ -20,7 +20,7 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 #shutter:active{transform:scale(.9)}
 .sbtn{width:56px;height:56px;border-radius:16px;background:#2a2a2a;color:#e8ecf2;border:none;font-size:12px;cursor:pointer;transition:.15s}
 .sbtn:active{transform:scale(.94)}
-#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20;transition:opacity .4s}
 #flash.go{opacity:.92;transition:none}
 #scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:25;opacity:0;pointer-events:none;transition:.25s}
 #scrim.open{opacity:1;pointer-events:auto}
@@ -75,5 +75,6 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 <div id="toast"></div>
 <input type="file" id="fileInput" accept="image/*" hidden>
 <script src="js/appcam.js"></script>
+<script src="js/appedit.js"></script>
 </body>
 </html>
