@@ -6,6 +6,12 @@ window.WM = window.WM || {};
 (function (WM) {
   var U = WM.utils;
 
+  // 每次绘制的行包围盒（供“点哪里编辑哪里”命中测试，绘制位置的副产品，不影响渲染）
+  var lastLayout = { lines: [], center: null };
+  function pushLine(ln, x, y, w, h) {
+    lastLayout.lines.push({ text: ln, x: x, y: y, w: w, h: h });
+  }
+
   function buildLines(st) {
     var lines = [];
     var t = st.time || U.fmtDateTime(Date.now());
@@ -40,8 +46,8 @@ window.WM = window.WM || {};
     var totalW = measureAll(fs);
     while (totalW > imgW * 0.55 && fs > 6) { fs = Math.round(fs * 0.85); totalW = measureAll(fs); }
 
-    var arcLen = totalW * 1.06;                       // 字距略拉开
-    var h = Math.min(arcLen * 0.75, imgH * 0.14);     // 弧的高度上限，竖图时别顶到顶
+    var arcLen = totalW * 1.06;
+    var h = Math.min(arcLen * 0.75, imgH * 0.14);
     var radius = (arcLen * arcLen) / (8 * h) + h / 2;
     var halfAng = arcLen / (2 * radius);
     var halfW = Math.sin(halfAng) * radius;
@@ -112,6 +118,8 @@ window.WM = window.WM || {};
       ctx.textBaseline = "middle";
       lines.forEach(function (ln, i) {
         U.drawMixedText(ctx, ln, bx + pad, by + pad + fs / 2 + i * lineH, hanFont, numFont);
+        pushLine(ln, bx + pad, by + pad + i * lineH,
+          U.measureMixedWith(ctx, ln, hanFont, numFont), lineH);
       });
     }
 
@@ -123,6 +131,8 @@ window.WM = window.WM || {};
       ctx.lineWidth = Math.max(2, cFont * 0.035);
       ctx.strokeStyle = "rgba(210,210,210,0.30)";
       ctx.font = "900 " + cFont + "px " + U.HAN_FONT;
+      var cw = ctx.measureText("现场拍照").width;
+      lastLayout.center = { x: W / 2 - cw / 2, y: H / 2 - cFont * 0.7, w: cw, h: cFont * 1.4 };
       ctx.strokeText("现场拍照", W / 2, H / 2);
       ctx.fillStyle = "rgba(50,50,55,0.25)";
       ctx.fillText("现场拍照", W / 2, H / 2);
@@ -176,6 +186,8 @@ window.WM = window.WM || {};
     ctx.textBaseline = "middle";
     lines.forEach(function (ln, i) {
       U.drawMixedText(ctx, ln, bx + pad, by + pad + fs / 2 + i * lineH, hanFont, numFont);
+      pushLine(ln, bx + pad, by + pad + i * lineH,
+        U.measureMixedWith(ctx, ln, hanFont, numFont), lineH);
     });
   }
 
@@ -183,6 +195,8 @@ window.WM = window.WM || {};
   function renderTo(cv, src, st) {
     var W = src.naturalWidth || src.width;
     var H = src.naturalHeight || src.height;
+    lastLayout.lines.length = 0;
+    lastLayout.center = null;
     cv.width = W; cv.height = H;
     var ctx = cv.getContext("2d");
     ctx.clearRect(0, 0, W, H);
@@ -195,6 +209,7 @@ window.WM = window.WM || {};
   WM.watermark = {
     buildLines: buildLines,
     drawArcAuto: drawArcAuto,
-    renderTo: renderTo
+    renderTo: renderTo,
+    lastLayout: lastLayout
   };
 })(window.WM);
