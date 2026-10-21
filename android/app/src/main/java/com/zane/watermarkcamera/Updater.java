@@ -32,7 +32,7 @@ public class Updater {
             @Override
             public void run() {
                 try {
-                    run(ctx, web);
+                    doUpdate(ctx, web);
                 } catch (Throwable ignored) {
                     // 保持本地版本
                 }
@@ -40,7 +40,7 @@ public class Updater {
         }).start();
     }
 
-    private static void run(Context ctx, final WebView web) throws Exception {
+    private static void doUpdate(Context ctx, final WebView web) throws Exception {
         SharedPreferences sp = ctx.getSharedPreferences("www_update", Context.MODE_PRIVATE);
         int local = sp.getInt("version", 0);
 
