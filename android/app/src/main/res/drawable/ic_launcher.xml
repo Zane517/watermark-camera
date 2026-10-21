@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 深色底（与网页主题色 #0f1115 一致） -->
+    <path
+        android:fillColor="#0F1115"
+        android:pathData="M0,0h108v108h-108z" />
+
+    <!-- 相机机身 -->
+    <path
+        android:fillColor="#23272F"
+        android:pathData="M24,40 h12 l6,-9 h24 l6,9 h12 a8,8 0 0 1,8 8 v32 a8,8 0 0 1,-8 8 h-60 a8,8 0 0 1,-8 -8 v-32 a8,8 0 0 1,8 -8 z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#F2F4F8"
+        android:strokeWidth="4"
+        android:pathData="M24,40 h12 l6,-9 h24 l6,9 h12 a8,8 0 0 1,8 8 v32 a8,8 0 0 1,-8 8 h-60 a8,8 0 0 1,-8 -8 v-32 a8,8 0 0 1,8 -8 z" />
+
+    <!-- 镜头 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#F2F4F8"
+        android:strokeWidth="4"
+        android:pathData="M54,64 m-16,0 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0" />
+
+    <!-- 橙色指示灯（与网页点缀色 #ff8a3d 呼应） -->
+    <path
+        android:fillColor="#FF8A3D"
+        android:pathData="M76,50 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+
+</vector>
