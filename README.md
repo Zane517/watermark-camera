@@ -7,7 +7,7 @@
 [![Build APK](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml)
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-277AF7?logo=githubpages)](https://zane517.github.io/watermark-camera/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-36D167.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.4.7-3482ff.svg)](#十更新日志)
+[![Version](https://img.shields.io/badge/version-1.4.8-3482ff.svg)](#十更新日志)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-36D167.svg)](#三模块架构)
 
 [在线演示](https://zane517.github.io/watermark-camera/) · [快速开始](#二快速开始) · [模块架构](#三模块架构) · [配置](#四配置高德-web-服务key可选) · [更新日志](#十更新日志)
@@ -54,7 +54,7 @@
 
 ### 2.4 Android APK（相机首页 + 本地内置 + 自动更新）
 
-仓库内置 WebView 壳工程（<code>android/</code>），**启动首页为全屏相机水印页 <code>app.html</code>（与网页版分离，无顶栏、画面完整融入状态栏）**：实时取景并逐帧叠加时间/水印，点按水印任意一行即定位编辑该字段，快门拍照经原生桥写入系统相册（Pictures/AI），拍摄画幅可选 4:3 / 16:9 / 1:1，**跟随系统旋转**，**定位走原生 GPS 桥**（WebView 定位退化时自动回退）。CI 构建时将全部 Web 资源同步进 APK（<code>assets/www/</code>）：
+仓库内置 WebView 壳工程（<code>android/</code>），**启动首页为全屏相机水印页 <code>app.html</code>（与网页版分离，无顶栏、画面完整融入状态栏）**：实时取景并逐帧叠加时间/水印，点按水印任意一行即定位编辑该字段，**水印信息含拍摄人、备注与右下弧形水印（开关 + 文字自定义）**，快门拍照经原生桥写入系统相册，拍摄画幅可选 4:3 / 16:9 / 1:1，**跟随系统旋转**，**定位走原生 GPS 桥**。CI 构建时将全部 Web 资源同步进 APK（<code>assets/www/</code>）：
 
 1. **Actions → Build APK → Run workflow**（推送 <code>android/</code> 或网页文件变更均会自动触发）；
 2. 在运行详情页 **Artifacts** 下载 <code>watermark-camera-apk</code>，获得 <code>app-debug.apk</code>；
@@ -71,7 +71,7 @@
 | 文件 | 职责 |
 |------|------|
 | <code>index.html</code> | 网页版入口（完整编辑工具） |
-| <code>app.html</code> · <code>js/appcam.js</code> · <code>js/appedit.js</code> | App 首页相机水印页：实时取景、点按水印行定位编辑、拍照保存、画幅切换；水印**共用 <code>watermark.js</code>** |
+| <code>app.html</code> · <code>js/appcam.js</code> · <code>js/appedit.js</code> | App 首页相机水印页：实时取景、点按水印行定位编辑、拍照保存、画幅与弧形水印控制；水印**共用 <code>watermark.js</code>** |
 | <code>css/style.css</code> | Miuix 设计语言主题（双主题 CSS 变量） |
 | <code>js/config.js</code> | 默认参数、导出画质、AMap Key 读写 |
 | <code>js/utils.js</code> | 时间格式化、中英混排文字测量、圆角矩形 |
@@ -110,6 +110,7 @@ Key 仅写入浏览器 <code>localStorage</code>（键名 <code>wm.amap.key</cod
 | 纬度 / 经度 | 自动 / 手动 | 浏览器定位或高德地址编码，统一 WGS84（见 5.3），可手改 |
 | 地址 | 自动 / 手动 | 逆地理反查或手填 |
 | 拍摄人 / ID、备注 | 手动 | 填写后方渲染至水印 |
+| 弧形文字 | 手动 | 右下弧形水印文字，留空回退默认「今日水印相机」 |
 
 ### 5.2 水印风格
 
@@ -119,7 +120,7 @@ Key 仅写入浏览器 <code>localStorage</code>（键名 <code>wm.amap.key</cod
 | 简洁 | 左上信息块，可选半透明底衬 |
 | 角落 | 同简洁，固定于左下角 |
 
-可调项：中央水印 / 弧形水印（文字可自定义）/ 时间 / 经纬度 / 地址开关、底衬开关、字号缩放（1.2–5.0）。导出始终为**原图分辨率 + JPEG 95%**，不受预览尺寸影响。
+可调项：中央水印 / 弧形水印（开关 + 文字自定义）/ 时间 / 经纬度 / 地址开关、底衬开关、字号缩放（1.2–5.0）。导出始终为**原图分辨率 + JPEG 95%**，不受预览尺寸影响。
 
 ### 5.3 坐标系说明（固定 WGS84）
 
@@ -132,7 +133,7 @@ Key 仅写入浏览器 <code>localStorage</code>（键名 <code>wm.amap.key</cod
 
 ## 六、设计规范
 
-UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（<code>compose-miuix-ui/miuix</code>）项目 <code>Colors.kt</code> 中的官方 <code>lightColorScheme</code> / <code>darkColorScheme</code> 色板：主色 <code>#3482FF</code>（浅色）/ <code>#277AF7</code>（深色），深色背景 <code>#242424</code>，字体栈 MiSans → HarmonyOS Sans SC → PingFang SC。通过 <code>prefers-color-scheme</code> 自动切换，顶栏使用毛玻璃（backdrop-filter），卡片圆角 24px；App 编辑面板为 HyperOS 设置式分组布局。
+UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（<code>compose-miuix-ui/miuix</code>）项目 <code>Colors.kt</code> 中的官方 <code>lightColorScheme</code> / <code>darkColorScheme</code> 色板：主色 <code>#3482FF</code>（浅色）/ <code>#277AF7</code>（深色），深色背景 <code>#242424</code>，字体栈 MiSans → HarmonyOS Sans SC → PingFang SC。通过 <code>prefers-color-scheme</code> 自动切换，卡片圆角 24px；App 编辑面板为 HyperOS 设置式分组布局。
 
 ---
 
@@ -169,16 +170,17 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（<code>compose-miu
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.4.8 | 2026-10-22 | App「水印信息」栏补上**右下弧形水印**控制：<code>showArc</code> 开关 + <code>arcText</code> 文字输入（留空回退默认），与网页版 <code>watermark.js</code> 同源渲染，状态持久化 |
 | v1.4.7 | 2026-10-22 | 移除顶栏（定位胶囊与编辑按钮）：取景画面完整融入状态栏；编辑入口保持——点画面任意处开面板、点水印行直接聚焦字段；定位状态改为仅失败时 toast 提示 |
 | v1.4.6 | 2026-10-22 | 定位改**原生桥优先**：<code>NativeBridge.requestLocation</code> 走 <code>LocationManager</code>（新鲜已知位置直接用，否则 GPS 单次 6s → 网络 4s，按精度择优），经 <code>__onNativeLoc</code> 异步回灌；失败自动回退 <code>watchPosition</code> 精修。修复国内无 GMS 环境下 WebView 定位退化导致的偏移 |
-| v1.4.5 | 2026-10-22 | 跟随系统旋转（<code>unspecified</code> + <code>configChanges</code> 全覆盖，转屏不重启、摄像头不中断）；点水印任意行即聚焦编辑对应字段（<code>watermark.js</code> 暴露 <code>lastLayout</code> 包围盒做命中测试，中央字 → 中央水印开关，目标高亮 1.6s） |
-| v1.4.4 | 2026-10-22 | 页面融入状态栏（透明保留、不隐藏）；定位改 <code>watchPosition</code> 连续精修：不取旧缓存、精度优于 20m 或 12s 超时即停、顶栏显示 ±m；新增拍摄画幅 4:3 / 16:9 / 1:1，取景框按比例内切、拍照输出即所选比例 |
-| v1.4.3 | 2026-10-22 | App 全屏沉浸：状态栏隐藏、小白条透明浮层，安全区经壳层 JS 桥回传并与 <code>env()</code> 取 max；顶栏移除时间、底部移除工具入口使快门居中；<code>NativeBridge</code> 独立成类 |
-| v1.4.2 | 2026-10-22 | App 相机页水印改由网页版 <code>watermark.js</code> 统一渲染（帧循环经缓冲画布 cover 裁切），两版样式与字号排版完全一致 |
-| v1.4.1 | 2026-10-22 | 坐标全链路固定 WGS84：<code>geo.js</code> 增加 GCJ-02 ⇄ WGS84 本地转换（编码出参转 WGS、反查入参转 GCJ），移除坐标系选择 UI，状态文案与水印恒为 WGS84；App 侧同步 |
-| v1.4.0 | 2026-10-22 | App 首页改为全屏相机水印页（app.html）：实时取景叠加、点按编辑面板、快门拍照经原生桥存相册；与网页版 index.html 分离，底栏可互跳 |
-| v1.3.0 | 2026-10-22 | APK 本地内置 Web 资源（完全离线可用）；<code>version.json</code> 启动静默增量更新、失败整体回退；CI 构建同步网页资源；壳环境跳过 SW 注册 |
-| v1.2.0 | 2026-10-22 | Miuix 设计语言改版：官方双主题色板、毛玻璃顶栏、PWA 图标与主题色同步，SW 缓存升 v2 |
+| v1.4.5 | 2026-10-22 | 跟随系统旋转（<code>unspecified</code> + <code>configChanges</code> 全覆盖，转屏不重启、摄像头不中断）；点水印任意行即聚焦编辑对应字段（<code>watermark.js</code> 暴露 <code>lastLayout</code> 包围盒做命中测试） |
+| v1.4.4 | 2026-10-22 | 页面融入状态栏（透明保留、不隐藏）；定位连续精修并显示 ±m；新增拍摄画幅 4:3 / 16:9 / 1:1 |
+| v1.4.3 | 2026-10-22 | App 全屏沉浸与安全区 JS 桥回传；顶栏移除时间、底栏移除工具入口使快门居中；<code>NativeBridge</code> 独立成类 |
+| v1.4.2 | 2026-10-22 | App 水印改由网页版 <code>watermark.js</code> 统一渲染，两版样式与字号排版完全一致 |
+| v1.4.1 | 2026-10-22 | 坐标全链路固定 WGS84：<code>geo.js</code> 增加 GCJ-02 ⇄ WGS84 本地转换，移除坐标系选择 UI |
+| v1.4.0 | 2026-10-22 | App 首页改为全屏相机水印页（app.html），与网页版 index.html 分离 |
+| v1.3.0 | 2026-10-22 | APK 本地内置 Web 资源（完全离线可用）；<code>version.json</code> 静默增量更新；CI 同步网页资源 |
+| v1.2.0 | 2026-10-22 | Miuix 设计语言改版：官方双主题色板、毛玻璃顶栏；SW 缓存升 v2 |
 | v1.1.0 | 2026-10-22 | Android WebView 壳 + GitHub Actions 自动构建 APK |
 | v1.0.2 | 2026-10-22 | PWA：安装清单、离线缓存、应用图标 |
 | v1.0.1 | 2026-10-22 | GitHub Pages 在线版；MIT License；文档对齐 |
