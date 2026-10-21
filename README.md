@@ -7,7 +7,7 @@
 [![Build APK](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml)
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-277AF7?logo=githubpages)](https://zane517.github.io/watermark-camera/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-36D167.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.4.4-3482ff.svg)](#十更新日志)
+[![Version](https://img.shields.io/badge/version-1.4.5-3482ff.svg)](#十更新日志)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-36D167.svg)](#三模块架构)
 
 [在线演示](https://zane517.github.io/watermark-camera/) · [快速开始](#二快速开始) · [模块架构](#三模块架构) · [配置](#四配置高德-web-服务key可选) · [更新日志](#十更新日志)
@@ -54,7 +54,7 @@
 
 ### 2.4 Android APK（相机首页 + 本地内置 + 自动更新）
 
-仓库内置 WebView 壳工程（<code>android/</code>），**启动首页为全屏相机水印页 <code>app.html</code>（与网页版分离）**：实时取景并逐帧叠加时间/水印，点按画面弹出面板编辑，快门拍照经原生桥写入系统相册（Pictures/AI），拍摄画幅可选 4:3 / 16:9 / 1:1。CI 构建时将全部 Web 资源同步进 APK（<code>assets/www/</code>）：
+仓库内置 WebView 壳工程（<code>android/</code>），**启动首页为全屏相机水印页 <code>app.html</code>（与网页版分离）**：实时取景并逐帧叠加时间/水印，点按水印任意一行即定位编辑该字段，快门拍照经原生桥写入系统相册（Pictures/AI），拍摄画幅可选 4:3 / 16:9 / 1:1，**跟随系统旋转**（转屏不重启、摄像头不中断）。CI 构建时将全部 Web 资源同步进 APK（<code>assets/www/</code>）：
 
 1. **Actions → Build APK → Run workflow**（推送 <code>android/</code> 或网页文件变更均会自动触发）；
 2. 在运行详情页 **Artifacts** 下载 <code>watermark-camera-apk</code>，获得 <code>app-debug.apk</code>；
@@ -71,13 +71,13 @@
 | 文件 | 职责 |
 |------|------|
 | <code>index.html</code> | 网页版入口（完整编辑工具） |
-| <code>app.html</code> · <code>js/appcam.js</code> · <code>js/appedit.js</code> | App 首页相机水印页：实时取景、点按编辑、拍照保存、画幅切换；水印**共用 <code>watermark.js</code>** |
+| <code>app.html</code> · <code>js/appcam.js</code> · <code>js/appedit.js</code> | App 首页相机水印页：实时取景、点按水印行定位编辑、拍照保存、画幅切换；水印**共用 <code>watermark.js</code>** |
 | <code>css/style.css</code> | Miuix 设计语言主题（双主题 CSS 变量） |
 | <code>js/config.js</code> | 默认参数、导出画质、AMap Key 读写 |
 | <code>js/utils.js</code> | 时间格式化、中英混排文字测量、圆角矩形 |
 | <code>js/geo.js</code> | 浏览器定位、地址逆地理、地址转经纬度、**GCJ-02 ⇄ WGS84 本地转换** |
 | <code>js/camera.js</code> | 摄像头启停与抓帧 |
-| <code>js/watermark.js</code> | 水印绘制，仅依赖状态与画布，无 DOM 耦合（网页版与 App 版共用） |
+| <code>js/watermark.js</code> | 水印绘制（网页版与 App 版共用），绘制时记录 <code>lastLayout</code> 行包围盒供点按命中 |
 | <code>js/app.js</code> | 网页版 UI 绑定与主流程 |
 | <code>sw.js</code> · <code>manifest.webmanifest</code> | PWA 离线缓存与安装清单（在线模式） |
 | <code>build.mjs</code> | 将样式与脚本内联为单文件 HTML |
@@ -169,6 +169,7 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（<code>compose-miu
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.4.5 | 2026-10-22 | 跟随系统旋转（<code>unspecified</code> + <code>configChanges</code> 全覆盖，转屏不重启、摄像头不中断）；点水印任意行即聚焦编辑对应字段（<code>watermark.js</code> 暴露 <code>lastLayout</code> 包围盒做命中测试，中央字 → 中央水印开关，目标高亮 1.6s） |
 | v1.4.4 | 2026-10-22 | 页面融入状态栏（透明保留、不隐藏）；定位改 <code>watchPosition</code> 连续精修：不取旧缓存、精度优于 20m 或 12s 超时即停、顶栏显示 ±m；新增拍摄画幅 4:3 / 16:9 / 1:1，取景框按比例内切、拍照输出即所选比例 |
 | v1.4.3 | 2026-10-22 | App 全屏沉浸：状态栏隐藏、小白条透明浮层，安全区经壳层 JS 桥回传并与 <code>env()</code> 取 max；顶栏移除时间、底部移除工具入口使快门居中；<code>NativeBridge</code> 独立成类 |
 | v1.4.2 | 2026-10-22 | App 相机页水印改由网页版 <code>watermark.js</code> 统一渲染（帧循环经缓冲画布 cover 裁切），两版样式与字号排版完全一致 |
