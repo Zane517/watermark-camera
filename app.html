@@ -44,6 +44,8 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 .tbtn:active{transform:scale(.94)}
 .mrow .seg{flex:1;max-width:230px;margin-left:auto}
 .mrow .switch{margin-left:auto}
+/* 点按水印后的目标字段高亮 */
+.hl{outline:2px solid var(--acc,#3482ff);outline-offset:2px;border-radius:10px}
 </style>
 <script>
   // 壳层回传的系统安全区（状态栏/刘海/小白条），与 env() 取较大值
@@ -102,7 +104,7 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 
   <div class="mgCap">水印样式</div>
   <div class="mg">
-    <div class="mrow"><label>风格</label><div class="seg" id="styleSeg"><button data-s="classic" class="on">经典</button><button data-s="clean">简洁</button><button data-s="corner">角落</button></div></div>
+    <div class="mrow"><label>风格</label><div class="seg" id="styleSeg"><button data-style="classic" class="on" data-s="classic">经典</button><button data-s="clean">简洁</button><button data-s="corner">角落</button></div></div>
     <div class="mrow"><label>中央水印</label><div class="switch on" id="swCenter"></div></div>
     <div class="mrow"><label>经纬地址</label><div class="switch on" id="swGeo"></div></div>
   </div>
