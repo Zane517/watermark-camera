@@ -21,17 +21,22 @@
   $("geoBtn").addEventListener("click", C.locate);
   $("locChip").addEventListener("click", C.locate);
 
-  var segAll = document.querySelectorAll("#styleSeg button");
-  Array.prototype.forEach.call(segAll, function (b) {
-    b.addEventListener("click", function () {
-      Array.prototype.forEach.call(segAll, function (x) { x.classList.remove("on"); });
-      b.classList.add("on"); state.style = b.getAttribute("data-s"); persist();
+  function bindSeg(sel, attr, key) {
+    var all = document.querySelectorAll(sel);
+    Array.prototype.forEach.call(all, function (b) {
+      b.addEventListener("click", function () {
+        Array.prototype.forEach.call(all, function (x) { x.classList.remove("on"); });
+        b.classList.add("on"); state[key] = b.getAttribute(attr); persist();
+      });
+      if (b.getAttribute(attr) === state[key]) {
+        Array.prototype.forEach.call(all, function (x) { x.classList.remove("on"); });
+        b.classList.add("on");
+      }
     });
-    if (b.getAttribute("data-s") === state.style) {
-      Array.prototype.forEach.call(segAll, function (x) { x.classList.remove("on"); });
-      b.classList.add("on");
-    }
-  });
+  }
+  bindSeg("#styleSeg button", "data-s", "style");
+  bindSeg("#aspectSeg button", "data-a", "aspect");
+
   function bindSwitch(id, key) {
     var el = $(id);
     el.addEventListener("click", function () {
