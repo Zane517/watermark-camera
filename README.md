@@ -39,53 +39,51 @@
 
 ### 2.2 本地运行
 
-\u0060\u0060\u0060bash
-# 于仓库根目录执行，任选其一
-npx serve .
-python -m http.server 8000
-\u0060\u0060\u0060
+在仓库根目录执行，任选其一：
 
-也可直接双击 \u0060index.html\u0060 打开（\u0060file://\u0060 下摄像头/定位不可用，用「选择图片」导入）。
+    npx serve .
+    python -m http.server 8000
+
+也可直接双击 <code>index.html</code> 打开（<code>file://</code> 下摄像头/定位不可用，用「选择图片」导入）。
 
 ### 2.3 单文件分发
 
-\u0060\u0060\u0060bash
-node build.mjs
-# 生成 dist/今日水印相机.html（约 31 KB），可单独分发给他人
-\u0060\u0060\u0060
+    node build.mjs
+
+生成 <code>dist/今日水印相机.html</code>（约 31 KB），可单独分发给他人。
 
 ### 2.4 Android APK（相机首页 + 本地内置 + 自动更新）
 
-仓库内置 WebView 壳工程（\u0060android/\u0060），**启动首页为全屏相机水印页 \u0060app.html\u0060（与网页版分离）**：实时取景并逐帧叠加时间/水印，点按画面弹出面板编辑，快门拍照经原生桥写入系统相册（Pictures/AI），底栏「工具」可进入完整网页版。CI 构建时将全部 Web 资源同步进 APK（\u0060assets/www/\u0060）：
+仓库内置 WebView 壳工程（<code>android/</code>），**启动首页为全屏相机水印页 <code>app.html</code>（与网页版分离）**：实时取景并逐帧叠加时间/水印，点按画面弹出面板编辑，快门拍照经原生桥写入系统相册（Pictures/AI），底栏「工具」可进入完整网页版。CI 构建时将全部 Web 资源同步进 APK（<code>assets/www/</code>）：
 
-1. **Actions → Build APK → Run workflow**（推送 \u0060android/**\u0060 或网页文件变更均会自动触发）；
-2. 在运行详情页 **Artifacts** 下载 \u0060watermark-camera-apk\u0060，获得 \u0060app-debug.apk\u0060；
+1. **Actions → Build APK → Run workflow**（推送 <code>android/</code> 或网页文件变更均会自动触发）；
+2. 在运行详情页 **Artifacts** 下载 <code>watermark-camera-apk</code>，获得 <code>app-debug.apk</code>；
 3. 安装后首次启动会申请摄像头、定位与（Android 9 及以下）存储权限。
 
-壳加载 APK 内置资源，**断网完全可用**；启动时读取 \u0060version.json\u0060，发现更高版本即静默同步，网页迭代无需重装 APK。
+壳加载 APK 内置资源，**断网完全可用**；启动时读取 <code>version.json</code>，发现更高版本即静默同步，网页迭代无需重装 APK。
 
 ---
 
 ## 三、模块架构
 
-数据流：\u0060app.js\u0060（状态与事件） → \u0060watermark.js\u0060（Canvas 绘制） → 预览 / 导出；地理数据经 \u0060geo.js\u0060 获取后写回状态。各模块通过 \u0060window.WM\u0060 命名空间协作，未使用 ES Module，因此 \u0060file://\u0060 直开可用。
+数据流：<code>app.js</code>（状态与事件） → <code>watermark.js</code>（Canvas 绘制） → 预览 / 导出；地理数据经 <code>geo.js</code> 获取后写回状态。各模块通过 <code>window.WM</code> 命名空间协作，未使用 ES Module，因此 <code>file://</code> 直开可用。
 
 | 文件 | 职责 |
 |------|------|
-| \u0060index.html\u0060 | 网页版入口（完整编辑工具） |
-| \u0060app.html\u0060 · \u0060js/appcam.js\u0060 · \u0060js/appedit.js\u0060 | App 首页相机水印页：实时取景叠加、点按编辑、拍照保存，与网页版完全分离 |
-| \u0060css/style.css\u0060 | Miuix 设计语言主题（双主题 CSS 变量） |
-| \u0060js/config.js\u0060 | 默认参数、导出画质、AMap Key 读写 |
-| \u0060js/utils.js\u0060 | 时间格式化、中英混排文字测量、圆角矩形 |
-| \u0060js/geo.js\u0060 | 浏览器定位、地址逆地理、地址转经纬度、**GCJ-02 ⇄ WGS84 本地转换** |
-| \u0060js/camera.js\u0060 | 摄像头启停与抓帧 |
-| \u0060js/watermark.js\u0060 | 水印绘制，仅依赖状态与画布，无 DOM 耦合 |
-| \u0060js/app.js\u0060 | 网页版 UI 绑定与主流程 |
-| \u0060sw.js\u0060 · \u0060manifest.webmanifest\u0060 | PWA 离线缓存与安装清单（在线模式） |
-| \u0060build.mjs\u0060 | 将样式与脚本内联为单文件 HTML |
-| \u0060android/…/MainActivity.java\u0060 | 壳：首页加载、权限、选图、\u0060AppNative\u0060 保存桥 |
-| \u0060android/…/LocalAssets.java\u0060 · \u0060Updater.java\u0060 | 资源拦截（更新优先/内置兜底）与后台版本同步 |
-| \u0060version.json\u0060 | 发布版本号与待同步文件清单 |
+| <code>index.html</code> | 网页版入口（完整编辑工具） |
+| <code>app.html</code> · <code>js/appcam.js</code> · <code>js/appedit.js</code> | App 首页相机水印页：实时取景叠加、点按编辑、拍照保存，与网页版完全分离 |
+| <code>css/style.css</code> | Miuix 设计语言主题（双主题 CSS 变量） |
+| <code>js/config.js</code> | 默认参数、导出画质、AMap Key 读写 |
+| <code>js/utils.js</code> | 时间格式化、中英混排文字测量、圆角矩形 |
+| <code>js/geo.js</code> | 浏览器定位、地址逆地理、地址转经纬度、**GCJ-02 ⇄ WGS84 本地转换** |
+| <code>js/camera.js</code> | 摄像头启停与抓帧 |
+| <code>js/watermark.js</code> | 水印绘制，仅依赖状态与画布，无 DOM 耦合 |
+| <code>js/app.js</code> | 网页版 UI 绑定与主流程 |
+| <code>sw.js</code> · <code>manifest.webmanifest</code> | PWA 离线缓存与安装清单（在线模式） |
+| <code>build.mjs</code> | 将样式与脚本内联为单文件 HTML |
+| <code>android/…/MainActivity.java</code> | 壳：首页加载、权限、选图、<code>AppNative</code> 保存桥 |
+| <code>android/…/LocalAssets.java</code> · <code>Updater.java</code> | 资源拦截（更新优先/内置兜底）与后台版本同步 |
+| <code>version.json</code> | 发布版本号与待同步文件清单 |
 
 ---
 
@@ -94,10 +92,10 @@ node build.mjs
 不配置 Key 时，「地址逆地理」与「地址转经纬度」不可用，其余功能不受影响。
 
 1. [高德开放平台](https://lbs.amap.com/) → 控制台 → 创建应用 → 添加 Key；
-2. **服务平台必须选择「Web 服务」**，误选「Web 端 (JS API)」会返回 \u0060INVALID_USER_SCODE\u0060；
+2. **服务平台必须选择「Web 服务」**，误选「Web 端 (JS API)」会返回 <code>INVALID_USER_SCODE</code>；
 3. 页面右上角「配置定位 Key」→ 粘贴保存。
 
-Key 仅写入浏览器 \u0060localStorage\u0060（键名 \u0060wm.amap.key\u0060），不会进入任何源码文件或远端服务器；清空输入框即可删除。APK 与在线版的存储域不同，首次在新环境使用需重新配置一次。
+Key 仅写入浏览器 <code>localStorage</code>（键名 <code>wm.amap.key</code>），不会进入任何源码文件或远端服务器；清空输入框即可删除。APK 与在线版的存储域不同，首次在新环境使用需重新配置一次。
 
 ---
 
@@ -125,7 +123,7 @@ Key 仅写入浏览器 \u0060localStorage\u0060（键名 \u0060wm.amap.key\u0060
 ### 5.3 坐标系说明（固定 WGS84）
 
 - 浏览器定位原生返回 WGS84，直接使用；
-- 高德地理编码返回 GCJ-02，\u0060geo.js\u0060 本地转换为 WGS84 后再进入水印（境外原样返回）；
+- 高德地理编码返回 GCJ-02，<code>geo.js</code> 本地转换为 WGS84 后再进入水印（境外原样返回）；
 - 逆地理反查入参先由 WGS84 转成 GCJ-02 发给高德，保证地址准确；
 - 坐标系选择已移除，水印恒显示「坐标系：WGS84坐标系」。
 
@@ -133,13 +131,13 @@ Key 仅写入浏览器 \u0060localStorage\u0060（键名 \u0060wm.amap.key\u0060
 
 ## 六、设计规范
 
-UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（\u0060compose-miuix-ui/miuix\u0060）项目 \u0060Colors.kt\u0060 中的官方 \u0060lightColorScheme\u0060 / \u0060darkColorScheme\u0060 色板：主色 \u0060#3482FF\u0060（浅色）/ \u0060#277AF7\u0060（深色），深色背景 \u0060#242424\u0060，字体栈 MiSans → HarmonyOS Sans SC → PingFang SC。通过 \u0060prefers-color-scheme\u0060 自动切换，顶栏使用毛玻璃（backdrop-filter），卡片圆角 24px；App 编辑面板为 HyperOS 设置式分组布局。
+UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（<code>compose-miuix-ui/miuix</code>）项目 <code>Colors.kt</code> 中的官方 <code>lightColorScheme</code> / <code>darkColorScheme</code> 色板：主色 <code>#3482FF</code>（浅色）/ <code>#277AF7</code>（深色），深色背景 <code>#242424</code>，字体栈 MiSans → HarmonyOS Sans SC → PingFang SC。通过 <code>prefers-color-scheme</code> 自动切换，顶栏使用毛玻璃（backdrop-filter），卡片圆角 24px；App 编辑面板为 HyperOS 设置式分组布局。
 
 ---
 
 ## 七、环境与兼容性
 
-| 能力 | HTTPS / localhost | \u0060file://\u0060 直开 | Android APK |
+| 能力 | HTTPS / localhost | <code>file://</code> 直开 | Android APK |
 |------|:-:|:-:|:-:|
 | 图片导入与水印导出 | ✅ | ✅ | ✅ |
 | 摄像头拍摄 | ✅ | ❌（用「选择图片」） | ✅ |
@@ -147,7 +145,7 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（\u0060compose-miu
 | PWA 安装 / 离线 | ✅ | ❌ | —（本地资源内置） |
 | 断网运行 | 依赖 SW 缓存 | ✅ | ✅（资源内置，无需网络） |
 
-支持 Chrome / Edge / Firefox / Safari 等现代浏览器；建议使用近两个大版本。局域网 \u0060http://<IP>:8000\u0060 不属于安全上下文，摄像头同样不可用。
+支持 Chrome / Edge / Firefox / Safari 等现代浏览器；建议使用近两个大版本。局域网 <code>http://IP:8000</code> 不属于安全上下文，摄像头同样不可用。
 
 ---
 
@@ -155,7 +153,7 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（\u0060compose-miu
 
 - 图片、水印数据、定位信息与 Key 均不离开本机，无统计 SDK、无 Cookie、无第三方存储。
 - 除用户主动触发的高德地理编码请求外，在线模式无其他外部网络请求。
-- APK 启动时仅静默读取一次 \u0060version.json\u0060（版本号与文件清单）检查更新，离线自动跳过。
+- APK 启动时仅静默读取一次 <code>version.json</code>（版本号与文件清单）检查更新，离线自动跳过。
 - Android 壳工程仅提供 WebView 容器与权限桥接，不采集、不回传任何数据；资源读取带路径穿越防护。
 
 ---
@@ -170,9 +168,9 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（\u0060compose-miu
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| v1.4.1 | 2026-10-22 | 坐标全链路固定 WGS84：\u0060geo.js\u0060 增加 GCJ-02 ⇄ WGS84 本地转换（编码出参转 WGS、反查入参转 GCJ），移除坐标系选择 UI，状态文案与水印恒为 WGS84；App 侧同步 |
+| v1.4.1 | 2026-10-22 | 坐标全链路固定 WGS84：<code>geo.js</code> 增加 GCJ-02 ⇄ WGS84 本地转换（编码出参转 WGS、反查入参转 GCJ），移除坐标系选择 UI，状态文案与水印恒为 WGS84；App 侧同步 |
 | v1.4.0 | 2026-10-22 | App 首页改为全屏相机水印页（app.html）：实时取景叠加、点按编辑面板、快门拍照经原生桥存相册；与网页版 index.html 分离，底栏可互跳 |
-| v1.3.0 | 2026-10-22 | APK 本地内置 Web 资源（完全离线可用）；\u0060version.json\u0060 启动静默增量更新、失败整体回退；CI 构建同步网页资源；壳环境跳过 SW 注册 |
+| v1.3.0 | 2026-10-22 | APK 本地内置 Web 资源（完全离线可用）；<code>version.json</code> 启动静默增量更新、失败整体回退；CI 构建同步网页资源；壳环境跳过 SW 注册 |
 | v1.2.0 | 2026-10-22 | Miuix 设计语言改版：官方双主题色板、毛玻璃顶栏、PWA 图标与主题色同步，SW 缓存升 v2 |
 | v1.1.0 | 2026-10-22 | Android WebView 壳 + GitHub Actions 自动构建 APK |
 | v1.0.2 | 2026-10-22 | PWA：安装清单、离线缓存、应用图标 |
