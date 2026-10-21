@@ -4,13 +4,14 @@
   var $ = function (id) { return document.getElementById(id); };
   var video = $("video"), overlay = $("overlay"), viewBox = $("viewBox"),
       toastEl = $("toast"), locChip = $("locChip");
-  var buf = document.createElement("canvas"); // 底图缓冲：先 cover 裁切，再交给网页版引擎叠水印
+  var buf = document.createElement("canvas"); // 底图缓冲：先按画幅 cover 裁切，再交给网页版引擎叠水印
   var stream = null, facing = "environment", mode = "camera", img = null;
 
   var state = { time:"", lat:"", lng:"", addr:"", person:"", memo:"",
-                style:"classic", center:true, geo:true, manualTime:false };
+                style:"classic", center:true, geo:true, manualTime:false, aspect:"4:3" };
   try { var sv = JSON.parse(localStorage.getItem("wm.app.state") || "{}");
         for (var key in sv) state[key] = sv[key]; } catch (e) {}
+  if (!state.aspect) state.aspect = "4:3";
   function persist() { try { localStorage.setItem("wm.app.state", JSON.stringify(state)); } catch (e) {} }
   function toast(msg) {
     toastEl.textContent = msg; toastEl.classList.add("show");
@@ -59,15 +60,34 @@
       .then(function (s) { stream = s; video.srcObject = s; mode = "camera"; video.play(); })
       .catch(function (e) { toast("摄像头不可用" + (e && e.name ? "：" + e.name : "")); });
   }
+
+  /* 连续定位：不取旧缓存，首次修复后持续精修，精度优于 20m 或超时即停 */
+  var watchId = null, bestAcc = Infinity, addrAsked = false, locTimer = null;
+  function stopWatch() {
+    if (watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+    clearTimeout(locTimer);
+  }
   function locate() {
     if (!navigator.geolocation) { locChip.textContent = "不支持定位"; return; }
+    stopWatch();
+    bestAcc = Infinity; addrAsked = false;
     locChip.textContent = "定位中…";
-    navigator.geolocation.getCurrentPosition(function (pos) {
+    watchId = navigator.geolocation.watchPosition(function (pos) {
+      var acc = pos.coords.accuracy || 0;
+      if (acc > 0 && acc >= bestAcc) return;
+      bestAcc = acc;
       state.lat = pos.coords.latitude.toFixed(6);
       state.lng = pos.coords.longitude.toFixed(6);
-      locChip.textContent = "已定位"; fillForm(); persist(); reverseAddr();
-    }, function () { locChip.textContent = "定位失败，点此重试"; },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+      locChip.textContent = "已定位 ±" + (acc ? Math.round(acc) : "?") + "m";
+      fillForm(); persist();
+      if (!addrAsked) { addrAsked = true; reverseAddr(); }
+      if (bestAcc > 0 && bestAcc <= 20) stopWatch();
+    }, function () {
+      locChip.textContent = bestAcc === Infinity ? "定位失败，点此重试" : "已定位 ±" + Math.round(bestAcc) + "m";
+      stopWatch();
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    locTimer = setTimeout(stopWatch, 12000);
   }
   function reverseAddr() {
     var key = localStorage.getItem("wm.amap.key");
@@ -80,7 +100,7 @@
         var a = j.regeocode.addressComponent || {};
         var s = (a.province||"")+(a.city||"")+(a.district||"")+(a.street||"")+
                 ((a.streetNumber && a.streetNumber.number) || "");
-        if (s) { state.addr = s; fillForm(); persist(); locChip.textContent = "已反查地址"; }
+        if (s) { state.addr = s; fillForm(); persist(); }
       }).catch(function () {});
   }
 
@@ -105,17 +125,27 @@
     var s = Math.max(W / sw, H / sh), dw = sw * s, dh = sh * s;
     ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
   }
+  /* 画幅：在可视区内内切出目标比例的取景框 */
+  function frameBox(W, H) {
+    var r = state.aspect === "16:9" ? 16 / 9 : state.aspect === "1:1" ? 1 : 4 / 3;
+    var fw = W, fh = W / r;
+    if (fh > H) { fh = H; fw = H * r; }
+    return { w: Math.round(fw), h: Math.round(fh) };
+  }
   function drawFrame() {
     var dpr = window.devicePixelRatio || 1;
     var W = Math.max(1, Math.round(viewBox.clientWidth * dpr));
     var H = Math.max(1, Math.round(viewBox.clientHeight * dpr));
-    buf.width = W; buf.height = H;
+    var box = frameBox(W, H);
+    buf.width = box.w; buf.height = box.h;
     var bc = buf.getContext("2d");
     bc.fillStyle = "#000";
-    bc.fillRect(0, 0, W, H);
-    if (mode === "image" && img && img.naturalWidth) coverTo(bc, img, img.naturalWidth, img.naturalHeight, W, H);
-    else if (video.videoWidth) coverTo(bc, video, video.videoWidth, video.videoHeight, W, H);
+    bc.fillRect(0, 0, box.w, box.h);
+    if (mode === "image" && img && img.naturalWidth) coverTo(bc, img, img.naturalWidth, img.naturalHeight, box.w, box.h);
+    else if (video.videoWidth) coverTo(bc, video, video.videoWidth, video.videoHeight, box.w, box.h);
     WM.watermark.renderTo(overlay, buf, webState());
+    overlay.style.width = (box.w / dpr) + "px";
+    overlay.style.height = (box.h / dpr) + "px";
     requestAnimationFrame(drawFrame);
   }
 
