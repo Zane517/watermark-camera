@@ -1,7 +1,7 @@
 // Service Worker：离线缓存应用外壳，让「添加到主屏幕」后可离线打开
 // 缓存策略：静态资源 cache-first + 后台同步更新（stale-while-revalidate）
 "use strict";
-var CACHE = "wm-shell-v1";
+var CACHE = "wm-shell-v2";
 var ASSETS = [
   "./",
   "./index.html",
