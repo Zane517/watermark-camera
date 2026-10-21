@@ -1,12 +1,10 @@
-/* App 相机页核心：取景、逐帧调用网页版 watermark.js 渲染水印、定位（原生桥优先）、拍照保存 */
+/* App 相机页核心：取景、逐帧渲染（网页版 watermark.js）、定位、拍照保存 */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var video = $("video"), overlay = $("overlay"), viewBox = $("viewBox"),
-      toastEl = $("toast");
-  var buf = document.createElement("canvas"); // 底图缓冲：按画幅 cover 裁切后交给网页版引擎叠水印
+  var video = $("video"), overlay = $("overlay"), viewBox = $("viewBox"), toastEl = $("toast");
+  var buf = document.createElement("canvas");
   var stream = null, facing = "environment", mode = "camera", img = null;
-
   var state = { time:"", lat:"", lng:"", addr:"", person:"", memo:"",
                 style:"classic", center:true, geo:true, manualTime:false, aspect:"4:3",
                 arc:true, arcText:"今日水印相机" };
@@ -19,7 +17,7 @@
   function toast(msg) {
     toastEl.textContent = msg; toastEl.classList.add("show");
     clearTimeout(toastEl._t);
-    toastEl._t = setTimeout(function () { toastEl.classList.remove("show"); }, 1900);
+    toastEl._t = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
   }
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
   function nowStr() {
@@ -28,9 +26,7 @@
            pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
   }
   function timeStr() { return state.manualTime ? state.time : nowStr(); }
-
-  /* WGS84 → GCJ-02：仅用于高德反查入参，存储与展示始终 WGS84 */
-  function wgs2gcj(lng, lat) {
+  function wgs2gcj(lng, lat) { // 仅用于高德反查入参，存储与展示始终 WGS84
     if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lng, lat];
     var PI = 3.14159265358979324, A = 6378245, EE = 0.00669342162296594323;
     function tL(x, y) {
@@ -54,17 +50,29 @@
     return [lng + dLo * 180 / (A / sm * Math.cos(rl) * PI),
             lat + dLa * 180 / ((A * (1 - EE)) / (m * sm) * PI)];
   }
-
-  function stopCam() { if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; } }
-  function startCam() {
+  function stopCam() {
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+  }
+  /* 权限弹窗与首次 getUserMedia 存在竞态：可重试错误静默重试至权限就绪（最多 6 次） */
+  function startCam(attempt) {
+    attempt = attempt || 0;
     stopCam();
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("当前环境不支持摄像头"); return; }
     navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false })
       .then(function (s) { stream = s; video.srcObject = s; mode = "camera"; video.play(); })
-      .catch(function (e) { toast("摄像头不可用" + (e && e.name ? "：" + e.name : "")); });
+      .catch(function (e) {
+        var n = (e && e.name) || "";
+        var retry = n === "NotAllowedError" || n === "NotFoundError" ||
+                    n === "NotReadableError" || n === "OverconstrainedError";
+        if (retry && attempt < 6) {
+          setTimeout(function () { startCam(attempt + 1); }, attempt ? 1500 : 700);
+          return;
+        }
+        toast(n === "NotAllowedError"
+          ? "相机权限未授予：请在系统设置允许「水印相机」使用摄像头"
+          : "摄像头不可用：" + n);
+      });
   }
-
-  /* 定位：原生桥优先（GPS，规避 WebView 无 GMS 退化），失败回退 watchPosition 连续精修 */
   var watchId = null, bestAcc = Infinity, addrAsked = false, locTimer = null;
   function stopWatch() {
     if (watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
@@ -72,12 +80,8 @@
     clearTimeout(locTimer);
   }
   function locate() {
-    stopWatch();
-    bestAcc = Infinity; addrAsked = false;
-    if (window.AppNative) {
-      AppNative.requestLocation();
-      return;
-    }
+    stopWatch(); bestAcc = Infinity; addrAsked = false;
+    if (window.AppNative) { AppNative.requestLocation(); return; }
     jsLocate();
   }
   function applyFix(lat, lng, acc) {
@@ -93,7 +97,6 @@
     stopWatch();
   };
   window.__onNativeLocFail = function () { jsLocate(); };
-
   function jsLocate() {
     if (!navigator.geolocation) { toast("当前环境不支持定位"); return; }
     bestAcc = Infinity;
@@ -123,23 +126,15 @@
         if (s) { state.addr = s; fillForm(); persist(); }
       }).catch(function () {});
   }
-
-  /* 与网页版同源：映射到 watermark.js 的 state 字段，默认值取 WM.config.defaults */
   function webState() {
     var d = WM.config.defaults;
     return {
-      style: state.style,
-      showCenter: state.center,
-      showArc: state.arc,
-      arcText: state.arcText,
-      showTime: d.showTime,
-      showLng: state.geo,
-      showAddr: state.geo,
+      style: state.style, showCenter: state.center,
+      showArc: state.arc, arcText: state.arcText,
+      showTime: d.showTime, showLng: state.geo, showAddr: state.geo,
       bg: d.bg, x: d.x, y: d.y, crs: d.crs,
-      time: timeStr(),
-      lat: state.lat, lng: state.lng, addr: state.addr,
-      who: state.person, memo: state.memo,
-      scale: 2.4
+      time: timeStr(), lat: state.lat, lng: state.lng, addr: state.addr,
+      who: state.person, memo: state.memo, scale: 2.4
     };
   }
   function coverTo(ctx, src, sw, sh, W, H) {
@@ -168,7 +163,6 @@
     overlay.style.height = (box.h / dpr) + "px";
     requestAnimationFrame(drawFrame);
   }
-
   function shoot() {
     if (!overlay.width) return;
     var flash = $("flash");
@@ -200,13 +194,13 @@
     $("fArc").value = state.arcText;
   }
   window.CAM = { state: state, persist: persist, toast: toast, locate: locate,
-                 startCam: startCam, shoot: shoot, loadFile: loadFile,
+                 startCam: function () { startCam(0); }, shoot: shoot, loadFile: loadFile,
                  fillForm: fillForm, openSheet: openSheet, closeSheet: closeSheet,
                  facingSet: function (f) { facing = f; } };
   setInterval(function () {
     if (!state.manualTime && document.activeElement !== $("fTime")) $("fTime").value = nowStr();
   }, 1000);
   fillForm();
-  startCam(); locate();
+  startCam(0); locate();
   requestAnimationFrame(drawFrame);
 })();
