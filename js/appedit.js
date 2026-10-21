@@ -19,7 +19,6 @@
     state.manualTime = false; persist(); C.fillForm(); C.toast("已恢复自动时间");
   });
   $("geoBtn").addEventListener("click", C.locate);
-  $("locChip").addEventListener("click", C.locate);
 
   function bindSeg(sel, attr, key) {
     var all = document.querySelectorAll(sel);
@@ -70,7 +69,6 @@
   }
   var overlayEl = $("overlay");
   $("viewBox").addEventListener("click", function (e) {
-    if (e.target === $("locChip") || e.target === $("editTop")) return;
     var lay = (window.WM && WM.watermark) ? WM.watermark.lastLayout : null;
     if (lay && overlayEl && overlayEl.width) {
       var r = overlayEl.getBoundingClientRect();
@@ -95,7 +93,6 @@
     }
     C.openSheet();
   });
-  $("editTop").addEventListener("click", C.openSheet);
   $("scrim").addEventListener("click", C.closeSheet);
   $("closeSheet").addEventListener("click", C.closeSheet);
 
