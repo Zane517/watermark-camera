@@ -10,17 +10,20 @@ import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 /**
- * 极简 WebView 壳：加载在线版水印相机，
- * 打通摄像头（getUserMedia）、定位（Geolocation）、选图（file chooser）、localStorage。
+ * 本地封装壳：WebView 通过虚拟域名 https://appassets.androidplatform.net
+ * 加载 APK 内置的 Web 资源（完全离线可用），启动时后台检查在线更新；
+ * 摄像头（getUserMedia）、定位（Geolocation）、选图（file chooser）、localStorage 全打通。
  */
 public class MainActivity extends Activity {
 
-    private static final String APP_URL = "https://zane517.github.io/watermark-camera/";
+    private static final String START_URL = "https://" + LocalAssets.HOST + "/index.html";
     private static final int REQ_PERMISSIONS = 100;
     private static final int REQ_FILE_CHOOSER = 101;
 
@@ -39,20 +42,27 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);              // localStorage：高德 Key 持久化
         s.setGeolocationEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setAllowFileAccess(false);               // 本地文件不给 WebView 开，图片走系统选择器
+        s.setAllowFileAccess(false);               // 应用私有目录外不开放
         s.setDatabaseEnabled(true);
 
-        web.setWebViewClient(new WebViewClient());
+        final LocalAssets assets = new LocalAssets(this);
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                WebResourceResponse local = assets.intercept(req.getUrl());
+                // 本地域名 → 资源拦截；其余（高德 API 等）→ 正常走网络
+                return local != null ? local : super.shouldInterceptRequest(view, req);
+            }
+        });
 
         web.setWebChromeClient(new WebChromeClient() {
             @Override
-            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                callback.invoke(origin, hasLocationPermission(), false);
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback cb) {
+                cb.invoke(origin, hasLocationPermission(), false);
             }
 
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                // 摄像头（getUserMedia）授权
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -62,12 +72,11 @@ public class MainActivity extends Activity {
             }
 
             @Override
-            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
-                // 「选择图片」走系统文件选择器
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> cb, FileChooserParams params) {
                 if (filePathCallback != null) {
                     filePathCallback.onReceiveValue(null);
                 }
-                filePathCallback = callback;
+                filePathCallback = cb;
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("image/*");
@@ -76,7 +85,10 @@ public class MainActivity extends Activity {
             }
         });
 
-        web.loadUrl(APP_URL);
+        web.loadUrl(START_URL);
+
+        // 后台检查在线更新（version.json），离线时静默跳过
+        Updater.start(this, web);
 
         // 摄像头 + 定位：安装后首次启动一次性申请
         requestPermissions(new String[]{
