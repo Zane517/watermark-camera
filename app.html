@@ -6,16 +6,16 @@
 <title>水印相机</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-/* App 首页：全屏相机 + 实时水印（与网页版 index.html 分离，水印绘制共用 watermark.js） */
+/* App 首页：全屏相机 + 实时水印（与网页版分离，水印共用 watermark.js） */
+:root{--safe-top:0px;--safe-bottom:0px}
 html,body{height:100%;overflow:hidden;background:#000}
 body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
 #viewBox{position:relative;flex:1;overflow:hidden;background:#000}
 #video,#shot{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0}
 #overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:5}
-#top{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;gap:10px;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 16px;background:linear-gradient(rgba(0,0,0,.55),transparent);color:#fff}
-#clock{font-size:15px;font-weight:600;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+#top{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;gap:10px;align-items:center;padding:calc(10px + max(env(safe-area-inset-top,0px),var(--safe-top,0px))) 14px 16px;background:linear-gradient(rgba(0,0,0,.55),transparent);color:#fff}
 .chip{font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:none;color:#fff;cursor:pointer;white-space:nowrap}
-#bottom{display:flex;align-items:center;justify-content:space-between;padding:14px 22px calc(16px + env(safe-area-inset-bottom));background:#101010}
+#bottom{display:flex;align-items:center;justify-content:space-between;padding:14px 22px calc(16px + max(env(safe-area-inset-bottom,0px),var(--safe-bottom,0px)));background:rgba(16,16,16,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 #shutter{width:72px;height:72px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.4);cursor:pointer;transition:transform .12s var(--ease,cubic-bezier(.2,0,0,1))}
 #shutter:active{transform:scale(.9)}
 .sbtn{width:56px;height:56px;border-radius:16px;background:#2a2a2a;color:#e8ecf2;border:none;font-size:12px;cursor:pointer;transition:.15s}
@@ -25,8 +25,8 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 #scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:25;opacity:0;pointer-events:none;transition:.25s}
 #scrim.open{opacity:1;pointer-events:auto}
 
-/* ———— 编辑面板：Miuix / HyperOS 设置式分组 ———— */
-#sheet{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg,#242424);color:var(--txt,#f2f2f2);border-radius:28px 28px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.45);transform:translateY(110%);transition:transform .3s var(--ease,cubic-bezier(.2,0,0,1));max-height:84vh;overflow:auto;padding:12px 18px calc(22px + env(safe-area-inset-bottom))}
+/* 编辑面板：Miuix / HyperOS 设置式分组 */
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg,#242424);color:var(--txt,#f2f2f2);border-radius:28px 28px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.45);transform:translateY(110%);transition:transform .3s var(--ease,cubic-bezier(.2,0,0,1));max-height:84vh;overflow:auto;padding:12px 18px calc(22px + max(env(safe-area-inset-bottom,0px),var(--safe-bottom,0px)))}
 #sheet.open{transform:none}
 .handle{width:36px;height:4px;border-radius:99px;background:var(--line,#393939);margin:2px auto 10px}
 .shHead{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 14px}
@@ -44,6 +44,13 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
 .mrow .seg{flex:1;max-width:230px;margin-left:auto}
 .mrow .switch{margin-left:auto}
 </style>
+<script>
+  // 壳层回传的系统安全区（刘海/小白条），与 env() 取较大值
+  window.__setInsets = function (top, bottom) {
+    document.documentElement.style.setProperty("--safe-top", top + "px");
+    document.documentElement.style.setProperty("--safe-bottom", bottom + "px");
+  };
+</script>
 </head>
 <body>
 
@@ -52,7 +59,6 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
   <img id="shot" alt="">
   <canvas id="overlay"></canvas>
   <div id="top">
-    <span id="clock">--:--:--</span>
     <span class="chip" id="locChip">定位中…</span>
     <span style="flex:1"></span>
     <button class="chip" id="editTop">编辑水印</button>
@@ -64,7 +70,6 @@ body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:non
   <button class="sbtn" id="importBtn">导入</button>
   <button id="shutter" aria-label="拍照"></button>
   <button class="sbtn" id="flipBtn">切换</button>
-  <button class="sbtn" id="toolBtn">工具</button>
 </div>
 
 <div id="scrim"></div>
