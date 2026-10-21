@@ -7,7 +7,7 @@
 [![Build APK](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml)
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-277AF7?logo=githubpages)](https://zane517.github.io/watermark-camera/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-36D167.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.4.5-3482ff.svg)](#十更新日志)
+[![Version](https://img.shields.io/badge/version-1.4.6-3482ff.svg)](#十更新日志)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-36D167.svg)](#三模块架构)
 
 [在线演示](https://zane517.github.io/watermark-camera/) · [快速开始](#二快速开始) · [模块架构](#三模块架构) · [配置](#四配置高德-web-服务key可选) · [更新日志](#十更新日志)
@@ -54,7 +54,7 @@
 
 ### 2.4 Android APK（相机首页 + 本地内置 + 自动更新）
 
-仓库内置 WebView 壳工程（<code>android/</code>），**启动首页为全屏相机水印页 <code>app.html</code>（与网页版分离）**：实时取景并逐帧叠加时间/水印，点按水印任意一行即定位编辑该字段，快门拍照经原生桥写入系统相册（Pictures/AI），拍摄画幅可选 4:3 / 16:9 / 1:1，**跟随系统旋转**（转屏不重启、摄像头不中断）。CI 构建时将全部 Web 资源同步进 APK（<code>assets/www/</code>）：
+仓库内置 WebView 壳工程（<code>android/</code>），**启动首页为全屏相机水印页 <code>app.html</code>（与网页版分离）**：实时取景并逐帧叠加时间/水印，点按水印任意一行即定位编辑该字段，快门拍照经原生桥写入系统相册（Pictures/AI），拍摄画幅可选 4:3 / 16:9 / 1:1，**跟随系统旋转**，**定位走原生 GPS 桥**（WebView 定位退化时自动回退）。CI 构建时将全部 Web 资源同步进 APK（<code>assets/www/</code>）：
 
 1. **Actions → Build APK → Run workflow**（推送 <code>android/</code> 或网页文件变更均会自动触发）；
 2. 在运行详情页 **Artifacts** 下载 <code>watermark-camera-apk</code>，获得 <code>app-debug.apk</code>；
@@ -82,7 +82,7 @@
 | <code>sw.js</code> · <code>manifest.webmanifest</code> | PWA 离线缓存与安装清单（在线模式） |
 | <code>build.mjs</code> | 将样式与脚本内联为单文件 HTML |
 | <code>android/…/MainActivity.java</code> | 壳：首页加载、权限、选图、沉浸式融入状态栏与安全区回传 |
-| <code>android/…/NativeBridge.java</code> | 拍照保存桥（base64 → 系统相册） |
+| <code>android/…/NativeBridge.java</code> | 拍照保存桥 + **原生定位桥**（GPS 优先、网络兜底、异步回灌） |
 | <code>android/…/LocalAssets.java</code> · <code>Updater.java</code> | 资源拦截（更新优先/内置兜底）与后台版本同步 |
 | <code>version.json</code> | 发布版本号与待同步文件清单 |
 
@@ -169,6 +169,7 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（<code>compose-miu
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.4.6 | 2026-10-22 | 定位改**原生桥优先**：<code>NativeBridge.requestLocation</code> 走 <code>LocationManager</code>（新鲜已知位置直接用，否则 GPS 单次 6s → 网络 4s，按精度择优），经 <code>__onNativeLoc</code> 异步回灌；失败自动回退 <code>watchPosition</code> 精修。修复国内无 GMS 环境下 WebView 定位退化导致的偏移 |
 | v1.4.5 | 2026-10-22 | 跟随系统旋转（<code>unspecified</code> + <code>configChanges</code> 全覆盖，转屏不重启、摄像头不中断）；点水印任意行即聚焦编辑对应字段（<code>watermark.js</code> 暴露 <code>lastLayout</code> 包围盒做命中测试，中央字 → 中央水印开关，目标高亮 1.6s） |
 | v1.4.4 | 2026-10-22 | 页面融入状态栏（透明保留、不隐藏）；定位改 <code>watchPosition</code> 连续精修：不取旧缓存、精度优于 20m 或 12s 超时即停、顶栏显示 ±m；新增拍摄画幅 4:3 / 16:9 / 1:1，取景框按比例内切、拍照输出即所选比例 |
 | v1.4.3 | 2026-10-22 | App 全屏沉浸：状态栏隐藏、小白条透明浮层，安全区经壳层 JS 桥回传并与 <code>env()</code> 取 max；顶栏移除时间、底部移除工具入口使快门居中；<code>NativeBridge</code> 独立成类 |
