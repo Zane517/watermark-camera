@@ -3,7 +3,7 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var video = $("video"), overlay = $("overlay"), viewBox = $("viewBox"),
-      toastEl = $("toast"), locChip = $("locChip");
+      toastEl = $("toast");
   var buf = document.createElement("canvas"); // 底图缓冲：按画幅 cover 裁切后交给网页版引擎叠水印
   var stream = null, facing = "environment", mode = "camera", img = null;
 
@@ -71,7 +71,6 @@
   function locate() {
     stopWatch();
     bestAcc = Infinity; addrAsked = false;
-    locChip.textContent = "定位中…";
     if (window.AppNative) {
       AppNative.requestLocation();
       return;
@@ -81,7 +80,6 @@
   function applyFix(lat, lng, acc) {
     state.lat = lat.toFixed(6);
     state.lng = lng.toFixed(6);
-    locChip.textContent = "已定位 ±" + (acc ? Math.round(acc) : "?") + "m";
     fillForm(); persist();
     if (!addrAsked) { addrAsked = true; reverseAddr(); }
   }
@@ -94,7 +92,7 @@
   window.__onNativeLocFail = function () { jsLocate(); };
 
   function jsLocate() {
-    if (!navigator.geolocation) { locChip.textContent = "不支持定位"; return; }
+    if (!navigator.geolocation) { toast("当前环境不支持定位"); return; }
     bestAcc = Infinity;
     watchId = navigator.geolocation.watchPosition(function (pos) {
       var acc = pos.coords.accuracy || 0;
@@ -103,7 +101,7 @@
       applyFix(pos.coords.latitude, pos.coords.longitude, acc);
       if (bestAcc > 0 && bestAcc <= 20) stopWatch();
     }, function () {
-      locChip.textContent = bestAcc === Infinity ? "定位失败，点此重试" : "已定位 ±" + Math.round(bestAcc) + "m";
+      if (bestAcc === Infinity) toast("定位失败，可在面板中点「定位」重试");
       stopWatch();
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     locTimer = setTimeout(stopWatch, 12000);
