@@ -1,11 +1,10 @@
 // 定位与高德地址解析：locate 定位、reverseGeocode 反查地址、geocode 地址转经纬度
-// 坐标统一为 WGS84：geocode 的高德 GCJ-02 结果本地转换后再返回；reverseGeocode 入参先由 WGS84 转成 GCJ-02 以保证反查准确。
 "use strict";
 window.WM = window.WM || {};
 (function (WM) {
  function key() { return WM.config.getAmapKey(); }
 
- /* —— GCJ-02 ⇄ WGS84 转换（国测局椭球参数，中国境外原样返回） —— */
+ /* GCJ-02 ⇄ WGS84 转换（国测局椭球参数，境外原样返回） */
  var PI = 3.14159265358979324;
  var A = 6378245.0;
  var EE = 0.00669342162296594323;
@@ -64,8 +63,7 @@ window.WM = window.WM || {};
  function reverseGeocode(lat, lng) {
  var k = key();
  if (!k) return Promise.resolve("");
- // 入参是 WGS84，先转 GCJ-02 再请求高德，反查出的地址才准确
- var g = wgs2gcj(lng, lat);
+ var g = wgs2gcj(lng, lat); // 入参是 WGS84，转 GCJ-02 再请求，地址才准
  return fetch("https://restapi.amap.com/v3/geocode/regeo?location=" + g[0] + "," + g[1] + "&key=" + encodeURIComponent(k))
  .then(function (r) { return r.json(); })
  .then(function (j) { return (j && j.regeocode && j.regeocode.formatted_address) || ""; })
@@ -79,8 +77,8 @@ window.WM = window.WM || {};
  .then(function (r) { return r.json(); })
  .then(function (j) {
  if (j && j.status === "1" && j.geocodes && j.geocodes.length) {
- var parts = String(j.geocodes[0].location).split(","); // "lng,lat"（GCJ-02）
- var w = gcj2wgs(Number(parts[0]), Number(parts[1])); // 本地转换为 WGS84 再返回
+ var parts = String(j.geocodes[0].location).split(","); // "lng,lat"，GCJ-02
+ var w = gcj2wgs(Number(parts[0]), Number(parts[1])); // 转为 WGS84 再返回
  return {
  lng: w[0],
  lat: w[1],
