@@ -1,26 +1,34 @@
-/* appdbg.js v14 crash guard + camera watchdog (runs BEFORE appcam.js) */
+/* appdbg.js v16 crash guard + camera watchdog (runs BEFORE appcam.js) */
 (function () {
   var KEY = "wm.dbg";
   var ring = [];
   var chip = null;
-  function p2(n) { return (n < 10 ? "0" : "") + n; }
-  function now() { var d = new Date(); return p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds()); }
+  var hadErr = false;
+  var boot = (function () { var d = new Date(); function p(n) { return (n < 10 ? "0" : "") + n; }
+    return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()); })();
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(ring.slice(-40))); } catch (e) {}
     try { console.log("[wm]", ring[ring.length - 1]); } catch (e) {}
   }
-  function log(s) { ring.push(now() + " " + s); save(); }
+  function log(s) { var d = new Date(); function p(n) { return (n < 10 ? "0" : "") + n; }
+    ring.push(p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) + " " + s); save(); }
+  function ensureChip() {
+    if (!chip) {
+      chip = document.createElement("div");
+      chip.style.cssText = "position:fixed;left:6px;bottom:78px;max-width:78vw;z-index:99999;color:#fff;font:11px/1.35 monospace;padding:4px 6px;border-radius:4px;word-break:break-all;background:#b00020;";
+      chip.onclick = function () { chip.style.display = "none"; };
+      document.body.appendChild(chip);
+    }
+    return chip;
+  }
   function show(msg) {
+    hadErr = true;
     log("ERR " + msg);
     try {
-      if (!chip) {
-        chip = document.createElement("div");
-        chip.style.cssText = "position:fixed;left:6px;bottom:78px;max-width:78vw;z-index:99999;background:#b00020;color:#fff;font:11px/1.35 monospace;padding:4px 6px;border-radius:4px;word-break:break-all;";
-        chip.onclick = function () { chip.style.display = "none"; };
-        document.body.appendChild(chip);
-      }
-      chip.textContent = "ERR " + msg;
-      chip.style.display = "block";
+      var c = ensureChip();
+      c.style.background = "#b00020";
+      c.textContent = "ERR @" + boot + " " + msg;
+      c.style.display = "block";
     } catch (e) {}
   }
   window.onerror = function (m, u, l, c) {
@@ -31,6 +39,17 @@
     var r = e && e.reason;
     show("promise:" + ((r && (r.name + " " + r.message)) || String(r)));
   });
+  /* boot marker: gray chip proves THIS session runs the new guard */
+  setTimeout(function () {
+    if (hadErr) return;
+    try {
+      var c = ensureChip();
+      c.style.background = "rgba(40,40,40,.88)";
+      c.textContent = "guard on @" + boot;
+      c.style.display = "block";
+      setTimeout(function () { if (!hadErr) c.style.display = "none"; }, 4500);
+    } catch (e) {}
+  }, 700);
   function vid() { return document.getElementById("video"); }
   function camVisible() {
     var cw = document.getElementById("camwrap");
@@ -92,5 +111,5 @@
       }
     } catch (e) { log("wd:" + e.message); }
   }, 2000);
-  log("appdbg on");
+  log("appdbg v16 on @" + boot);
 })();
