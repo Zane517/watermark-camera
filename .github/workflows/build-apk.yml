@@ -1,5 +1,5 @@
 # 推送 android/ 或网页文件变更时自动构建 APK，产物在 Actions 运行页的 Artifacts 里下载
-# 失败时自动开 issue 并附 Gradle 日志尾部，便于通过 API 读取报错原因
+# 失败时把 Gradle 报错行转为 annotations（无变量、无 token，避免传输层模板替换）
 name: Build APK
 
 on:
@@ -20,7 +20,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   build:
@@ -47,18 +46,11 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build debug APK
-        env:
-          GITHUB_TOKEN: }
         run: |
           set -o pipefail
           gradle -p android :app:assembleDebug --no-daemon > build.log 2>&1 || {
-            if command -v jq > /dev/null; then
-              { echo "## CI Gradle build failed"; echo; echo "commit: "; echo; echo ''; } > /tmp/err.md
-              jq -n --rawfile b /tmp/err.md --arg t "CI: Gradle build failed" '{title:,body:}' > /tmp/issue.json
-              curl -sS -X POST -H "Authorization: Bearer " -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos//issues" -d @/tmp/issue.json > /dev/null
-            fi
-            echo "::error::gradle build failed, full log attached to the auto-created issue"
+            grep -E "error:|What went wrong|FAILURE|Execution failed|Could not|Caused by" build.log | head -10 | sed 's/^/::error::/'
+            tail -n 40 build.log | head -8 | sed 's/^/::error::tail: /'
             exit 1
           }
 
