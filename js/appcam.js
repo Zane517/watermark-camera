@@ -38,9 +38,8 @@
     }
     function tG(x, y) {
       var r = 300 + x + 2*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x));
-      r += (20*Math.sin(6*x*PI) + 20*Math.sin(2*x*PI))*2/3
-         + (20*Math.sin(x*PI) + 40*Math.sin(x/3*PI))*2/3
-         + (150*Math.sin(x/12*PI) + 300*Math.sin(x/30*PI))*2/3;
+      r += (20*Math.sin(x*PI) + 40*Math.sin(x/3*PI))*2/3
+         + (150*Math.sin(x*PI/12) + 300*Math.sin(x/30*PI))*2/3;
       return r;
     }
     var dLa = tL(lng - 105, lat - 35), dLo = tG(lng - 105, lat - 35);
@@ -53,7 +52,7 @@
   function stopCam() {
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
   }
-  /* 权限弹窗与首次 getUserMedia 存在竞态：可重试错误静默重试至权限就绪（最多 6 次） */
+  /* 权限竞态：静默重试最多 6 次（700ms→1500ms） */
   function startCam(attempt) {
     attempt = attempt || 0;
     stopCam();
@@ -81,7 +80,7 @@
   }
   function locate() {
     stopWatch(); bestAcc = Infinity; addrAsked = false;
-    if (window.AppNative) { AppNative.requestLocation(); return; }
+    if (window.AppNative && typeof AppNative.requestLocation === "function") { AppNative.requestLocation(); return; }
     jsLocate();
   }
   function applyFix(lat, lng, acc) {
@@ -170,7 +169,7 @@
     setTimeout(function () { flash.classList.remove("go"); }, 120);
     var url = overlay.toDataURL("image/jpeg", 0.95);
     var name = "WM_" + Date.now() + ".jpg";
-    if (window.AppNative) {
+    if (window.AppNative && typeof AppNative.saveImage === "function") {
       var r = AppNative.saveImage(url.substring(url.indexOf(",") + 1), name);
       if (r === "ok") toast("已保存到相册（Pictures/AI）");
       else if (r === "err:permission") { AppNative.requestStorage(); toast("请允许存储权限后重新拍摄"); }
@@ -201,6 +200,7 @@
     if (!state.manualTime && document.activeElement !== $("fTime")) $("fTime").value = nowStr();
   }, 1000);
   fillForm();
-  startCam(0); locate();
+  startCam(0);
   requestAnimationFrame(drawFrame);
+  try { locate(); } catch (e) { console.log("locate boot fail", e); }
 })();
