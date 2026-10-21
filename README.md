@@ -7,7 +7,7 @@
 [![Build APK](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml)
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-277AF7?logo=githubpages)](https://zane517.github.io/watermark-camera/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-36D167.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.0-3482ff.svg)](#十更新日志)
+[![Version](https://img.shields.io/badge/version-1.4.0-3482ff.svg)](#十更新日志)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-36D167.svg)](#三模块架构)
 
 [在线演示](https://zane517.github.io/watermark-camera/) · [快速开始](#二快速开始) · [模块架构](#三模块架构) · [配置](#四配置高德-web-服务key可选) · [更新日志](#十更新日志)
@@ -47,17 +47,15 @@
 
 
 
-### 2.4 Android APK（本地内置 + 自动更新）
+### 2.4 Android APK（相机首页 + 本地内置 + 自动更新）
 
-仓库内置 WebView 壳工程（），CI 构建时将全部 Web 资源同步进 APK（）：
+仓库内置 WebView 壳工程（），**启动首页为全屏相机水印页 （与网页版分离）**：实时取景并逐帧叠加时间/水印，点按画面弹出面板编辑，快门拍照经原生桥写入系统相册（Pictures/AI），底栏「工具」可进入完整网页版。CI 构建时将全部 Web 资源同步进 APK（）：
 
 1. **Actions → Build APK → Run workflow**（推送  或网页文件变更均会自动触发）；
 2. 在运行详情页 **Artifacts** 下载 ，获得 ；
-3. 安装后首次启动会申请摄像头与定位权限。
+3. 安装后首次启动会申请摄像头、定位与（Android 9 及以下）存储权限。
 
-**运行与更新机制**：壳通过虚拟域名  加载内置资源，**断网完全可用**；启动时后台读取仓库根目录 ，发现更高版本时静默下载变更文件至应用私有目录并刷新页面（离线或校验失败自动跳过，失败即整体放弃，不产生半更新）。因此网页日常迭代无需重装 APK，仅壳工程自身升级或全新安装时才需要下载新包。
-
-> 首次安装版本为构建时内置的基线； 的  字段在发布网页变更时递增， 列出需同步的文件清单。
+**运行与更新机制**：壳通过虚拟域名  加载内置资源，**断网完全可用**；启动后台读取根目录 ，发现更高版本即静默同步变更文件（失败整体放弃，无半更新），网页迭代无需重装 APK。
 
 ---
 
@@ -67,19 +65,19 @@
 
 | 文件 | 职责 |
 |------|------|
-|  | 页面结构，唯一入口 |
+|  | 网页版入口（完整编辑工具） |
+|  ·  ·  | App 首页相机水印页：实时取景叠加、点按编辑、拍照保存，与网页版完全分离 |
 |  | Miuix 设计语言主题（双主题 CSS 变量） |
 |  | 默认参数、导出画质、AMap Key 读写 |
 |  | 时间格式化、中英混排文字测量、圆角矩形 |
 |  | 浏览器定位、地址逆地理、地址转经纬度 |
 |  | 摄像头启停与抓帧 |
 |  | 水印绘制，仅依赖状态与画布，无 DOM 耦合 |
-|  | UI 绑定与主流程 |
+|  | 网页版 UI 绑定与主流程 |
 |  ·  | PWA 离线缓存与安装清单（在线模式） |
 |  | 将样式与脚本内联为单文件 HTML |
-|  | 壳：WebView 配置、权限、选图、页面加载 |
-|  | 资源拦截器：更新目录优先，APK assets 兜底 |
-|  | 后台版本检查与文件同步（防半更新） |
+|  | 壳：首页加载、权限、选图、 保存桥 |
+|  ·  | 资源拦截（更新优先/内置兜底）与后台版本同步 |
 |  | 发布版本号与待同步文件清单 |
 
 ---
@@ -164,6 +162,7 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（）项目  中的
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.4.0 | 2026-10-22 | App 首页改为全屏相机水印页（app.html）：实时取景叠加、点按编辑面板、快门拍照经原生桥存相册；与网页版 index.html 分离，底栏可互跳 |
 | v1.3.0 | 2026-10-22 | APK 本地内置 Web 资源（完全离线可用）； 启动静默增量更新、失败整体回退；CI 构建同步网页资源；壳环境跳过 SW 注册 |
 | v1.2.0 | 2026-10-22 | Miuix 设计语言改版：官方双主题色板、毛玻璃顶栏、PWA 图标与主题色同步，SW 缓存升 v2 |
 | v1.1.0 | 2026-10-22 | Android WebView 壳 + GitHub Actions 自动构建 APK |
