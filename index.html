@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>今日水印相机 · 打卡取证</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<meta name="theme-color" content="#0f1115">
 </head>
 <body>
 <header>
@@ -117,5 +121,13 @@
 <script src="js/camera.js"></script>
 <script src="js/watermark.js"></script>
 <script src="js/app.js"></script>
+<script>
+  // PWA：安全上下文（https / localhost）下注册 Service Worker，支持添加到主屏幕、离线可用
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js");
+    });
+  }
+</script>
 </body>
 </html>
