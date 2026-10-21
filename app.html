@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>水印相机</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* App 首页：全屏相机 + 实时水印（与网页版 index.html 分离） */
+html,body{height:100%;overflow:hidden;background:#000}
+body{display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+#viewBox{position:relative;flex:1;overflow:hidden;background:#000}
+#video,#shot{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0}
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:5}
+#top{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;gap:10px;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 16px;background:linear-gradient(rgba(0,0,0,.55),transparent);color:#fff}
+#clock{font-size:15px;font-weight:600;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.chip{font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:none;color:#fff;cursor:pointer;white-space:nowrap}
+#bottom{display:flex;align-items:center;justify-content:space-between;padding:14px 22px calc(16px + env(safe-area-inset-bottom));background:#101010}
+#shutter{width:72px;height:72px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.4);cursor:pointer;transition:transform .12s var(--ease,cubic-bezier(.2,0,0,1))}
+#shutter:active{transform:scale(.9)}
+.sbtn{width:56px;height:56px;border-radius:16px;background:#2a2a2a;color:#e8ecf2;border:none;font-size:12px;cursor:pointer;transition:.15s}
+.sbtn:active{transform:scale(.94)}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
+#flash.go{opacity:.92;transition:none}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:25;opacity:0;pointer-events:none;transition:.25s}
+#scrim.open{opacity:1;pointer-events:auto}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel,#2d2d2d);color:var(--txt,#f2f2f2);border-radius:24px 24px 0 0;transform:translateY(110%);transition:transform .3s var(--ease,cubic-bezier(.2,0,0,1));max-height:82vh;overflow:auto;padding:14px 18px calc(20px + env(safe-area-inset-bottom))}
+#sheet.open{transform:none}
+.handle{width:38px;height:4px;border-radius:99px;background:var(--line,#393939);margin:0 auto 14px}
+#sheet h3{font-size:15px;font-weight:600;margin-bottom:14px}
+#toast{position:fixed;left:50%;top:16%;transform:translateX(-50%) scale(.92);z-index:40;background:rgba(0,0,0,.8);color:#fff;padding:10px 18px;border-radius:14px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;max-width:80vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) scale(1)}
+</style>
+</head>
+<body>
+
+<div id="viewBox">
+  <video id="video" playsinline autoplay muted></video>
+  <img id="shot" alt="">
+  <canvas id="overlay"></canvas>
+  <div id="top">
+    <span id="clock">--:--:--</span>
+    <span class="chip" id="locChip">定位中…</span>
+    <span style="flex:1"></span>
+    <button class="chip" id="editTop">编辑水印</button>
+  </div>
+  <div id="flash"></div>
+</div>
+
+<div id="bottom">
+  <button class="sbtn" id="importBtn">导入</button>
+  <button id="shutter" aria-label="拍照"></button>
+  <button class="sbtn" id="flipBtn">切换</button>
+  <button class="sbtn" id="toolBtn">工具</button>
+</div>
+
+<div id="scrim"></div>
+<div id="sheet">
+  <div class="handle"></div>
+  <h3>水印内容 · 点击画面也可打开</h3>
+  <div class="grp"><label>拍摄时间</label><div class="posbar"><input type="text" id="fTime"><button class="btn ghost" id="nowBtn">现在</button></div></div>
+  <div class="cols">
+    <div class="grp"><label>纬度</label><input type="text" id="fLat"></div>
+    <div class="grp"><label>经度</label><input type="text" id="fLng"></div>
+  </div>
+  <div class="grp"><label>地址</label><div class="posbar"><input type="text" id="fAddr"><button class="btn ghost" id="geoBtn">定位</button></div></div>
+  <div class="grp"><label>拍摄人 / ID</label><input type="text" id="fId" placeholder="请输入姓名或ID"></div>
+  <div class="grp"><label>备注</label><input type="text" id="fMemo" placeholder="例如：例行巡检 / 现场实拍"></div>
+  <div class="grp"><label>风格</label><div class="seg" id="styleSeg"><button data-s="classic" class="on">经典</button><button data-s="clean">简洁</button><button data-s="corner">角落</button></div></div>
+  <div class="switchRow"><span>中央「现场拍照」</span><div class="switch on" id="swCenter"></div></div>
+  <div class="switchRow"><span>显示经纬度 / 地址</span><div class="switch on" id="swGeo"></div></div>
+  <button class="btn block" id="closeSheet" style="margin-top:10px">完成</button>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="fileInput" accept="image/*" hidden>
+<script src="js/appcam.js"></script>
+</body>
+</html>
