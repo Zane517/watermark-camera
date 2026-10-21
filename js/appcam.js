@@ -3,7 +3,7 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var video = $("video"), overlay = $("overlay"), viewBox = $("viewBox"),
-      toastEl = $("toast"), clock = $("clock"), locChip = $("locChip");
+      toastEl = $("toast"), locChip = $("locChip");
   var buf = document.createElement("canvas"); // 底图缓冲：先 cover 裁切，再交给网页版引擎叠水印
   var stream = null, facing = "environment", mode = "camera", img = null;
 
@@ -153,10 +153,9 @@
                  fillForm: fillForm, openSheet: openSheet, closeSheet: closeSheet,
                  facingSet: function (f) { facing = f; } };
   setInterval(function () {
-    clock.textContent = nowStr();
     if (!state.manualTime && document.activeElement !== $("fTime")) $("fTime").value = nowStr();
   }, 1000);
-  fillForm(); clock.textContent = nowStr();
+  fillForm();
   startCam(); locate();
   requestAnimationFrame(drawFrame);
 })();
