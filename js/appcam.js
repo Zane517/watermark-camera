@@ -8,10 +8,13 @@
   var stream = null, facing = "environment", mode = "camera", img = null;
 
   var state = { time:"", lat:"", lng:"", addr:"", person:"", memo:"",
-                style:"classic", center:true, geo:true, manualTime:false, aspect:"4:3" };
+                style:"classic", center:true, geo:true, manualTime:false, aspect:"4:3",
+                arc:true, arcText:"今日水印相机" };
   try { var sv = JSON.parse(localStorage.getItem("wm.app.state") || "{}");
         for (var key in sv) state[key] = sv[key]; } catch (e) {}
   if (!state.aspect) state.aspect = "4:3";
+  if (state.arc === undefined || state.arc === null) state.arc = true;
+  if (!state.arcText) state.arcText = "今日水印相机";
   function persist() { try { localStorage.setItem("wm.app.state", JSON.stringify(state)); } catch (e) {} }
   function toast(msg) {
     toastEl.textContent = msg; toastEl.classList.add("show");
@@ -127,7 +130,8 @@
     return {
       style: state.style,
       showCenter: state.center,
-      showArc: d.showArc,
+      showArc: state.arc,
+      arcText: state.arcText,
       showTime: d.showTime,
       showLng: state.geo,
       showAddr: state.geo,
@@ -193,6 +197,7 @@
   function fillForm() {
     $("fTime").value = timeStr(); $("fLat").value = state.lat; $("fLng").value = state.lng;
     $("fAddr").value = state.addr; $("fId").value = state.person; $("fMemo").value = state.memo;
+    $("fArc").value = state.arcText;
   }
   window.CAM = { state: state, persist: persist, toast: toast, locate: locate,
                  startCam: startCam, shoot: shoot, loadFile: loadFile,
