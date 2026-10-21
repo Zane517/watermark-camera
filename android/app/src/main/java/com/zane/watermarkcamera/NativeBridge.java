@@ -101,7 +101,7 @@ public class NativeBridge {
     private void doLocate() {
         try {
             if (activity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PackageManager.GRANTED) {
+                    != PackageManager.PERMISSION_GRANTED) {
                 deliver(null);
                 return;
             }
@@ -133,10 +133,7 @@ public class NativeBridge {
         }
     }
 
-    private volatile CountDownLatch pendingLatch;
-    private volatile Location[] pendingOut;
-
-    private Location awaitSingle(LocationManager lm, final String provider, long ms) {
+    private Location awaitSingle(LocationManager lm, String provider, long ms) {
         final CountDownLatch latch = new CountDownLatch(1);
         final Location[] out = new Location[1];
         LocationListener lis = new LocationListener() {
