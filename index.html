@@ -48,14 +48,7 @@
         <div class="grp"><label>纬度</label><input type="text" id="latV" placeholder="自动获取"></div>
         <div class="grp"><label>经度</label><input type="text" id="lngV" placeholder="自动获取"></div>
       </div>
-      <div class="grp">
-        <label>坐标系</label>
-        <div class="seg" id="crsSeg">
-          <button data-crs="WGS84坐标系" class="on">WGS84</button>
-          <button data-crs="GCJ02坐标系">GCJ-02</button>
-        </div>
-        <div class="hintline">浏览器定位 = WGS84；用「地址→经纬度」得到的是高德 GCJ-02，会自动切换。</div>
-      </div>
+      <div class="hintline" style="margin:-4px 0 14px">坐标统一为 WGS84；高德返回的 GCJ-02 结果已在本地自动转换。</div>
       <div class="grp">
         <label>地址 / 地点</label>
         <div class="posbar">
@@ -67,7 +60,7 @@
           <button class="btn ghost" id="geoBtn">地址→经纬度</button>
         </div>
         <div class="st" id="posStatus"></div>
-        <div class="hintline">「自动定位」用浏览器定位并反查地址；「地址→经纬度」用高德地理编码把地址转成经纬度并填入。</div>
+        <div class="hintline">「自动定位」用浏览器定位并反查地址；「地址→经纬度」用高德地理编码转成 WGS84 经纬度并填入。</div>
       </div>
       <div class="cols">
         <div class="grp"><label>拍摄人 / ID</label><input type="text" id="idV" placeholder="请输入姓名或ID"></div>
