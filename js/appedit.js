@@ -1,4 +1,4 @@
-/* App 相机页 UI 绑定（依赖 appcam.js 暴露的 window.CAM） */
+/* App 相机页 UI 绑定（依赖 appcam.js 的 window.CAM 与 watermark.js 的 lastLayout 命中数据） */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
@@ -46,8 +46,53 @@
   }
   bindSwitch("swCenter", "center"); bindSwitch("swGeo", "geo");
 
+  /* 点水印哪行就编辑哪行：命中 lastLayout 包围盒 → 打开面板并聚焦对应字段 */
+  function lineTarget(text) {
+    if (text.indexOf("经度") === 0) return "fLng";
+    if (text.indexOf("纬度") === 0) return "fLat";
+    if (text.indexOf("地址") === 0) return "fAddr";
+    if (text.indexOf("时间") === 0) return "fTime";
+    if (text.indexOf("拍摄人") === 0) return "fId";
+    if (text.indexOf("备注") === 0) return "fMemo";
+    return "";
+  }
+  function flash(el) {
+    if (!el) return;
+    if (el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.classList.add("hl");
+    setTimeout(function () { el.classList.remove("hl"); }, 1600);
+  }
+  function focusField(id) {
+    C.openSheet();
+    var el = $(id);
+    flash(el);
+    if (el && el.focus) el.focus();
+  }
+  var overlayEl = $("overlay");
   $("viewBox").addEventListener("click", function (e) {
     if (e.target === $("locChip") || e.target === $("editTop")) return;
+    var lay = (window.WM && WM.watermark) ? WM.watermark.lastLayout : null;
+    if (lay && overlayEl && overlayEl.width) {
+      var r = overlayEl.getBoundingClientRect();
+      if (r.width > 0) {
+        var x = (e.clientX - r.left) * (overlayEl.width / r.width);
+        var y = (e.clientY - r.top) * (overlayEl.height / r.height);
+        for (var i = 0; i < lay.lines.length; i++) {
+          var b = lay.lines[i];
+          if (x >= b.x - 8 && x <= b.x + b.w + 8 && y >= b.y && y <= b.y + b.h) {
+            var id = lineTarget(b.text);
+            if (id) { focusField(id); return; }
+            break; // 坐标系等固定行：仍开面板但不聚焦
+          }
+        }
+        var c = lay.center;
+        if (c && x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h) {
+          C.openSheet();
+          flash($("swCenter"));
+          return;
+        }
+      }
+    }
     C.openSheet();
   });
   $("editTop").addEventListener("click", C.openSheet);
