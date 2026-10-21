@@ -7,7 +7,7 @@
 [![Build APK](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Zane517/watermark-camera/actions/workflows/build-apk.yml)
 [![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-online-277AF7?logo=githubpages)](https://zane517.github.io/watermark-camera/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-36D167.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.4.0-3482ff.svg)](#十更新日志)
+[![Version](https://img.shields.io/badge/version-1.4.1-3482ff.svg)](#十更新日志)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-36D167.svg)](#三模块架构)
 
 [在线演示](https://zane517.github.io/watermark-camera/) · [快速开始](#二快速开始) · [模块架构](#三模块架构) · [配置](#四配置高德-web-服务key可选) · [更新日志](#十更新日志)
@@ -18,13 +18,13 @@
 
 ## 一、项目简介
 
-今日水印相机是一个运行在浏览器里的照片水印工具，适用于考勤打卡、巡检留痕、现场实拍等场景。选择图片或调用摄像头拍摄后，工具会在画面上叠加时间、经纬度、坐标系、地址、拍摄人与备注等信息，并按原图分辨率导出。
+今日水印相机是一个运行在浏览器里的照片水印工具，适用于考勤打卡、巡检留痕、现场实拍等场景。选择图片或调用摄像头拍摄后，工具会在画面上叠加时间、经纬度、地址、拍摄人与备注等信息，并按原图分辨率导出。
 
 **核心特性：**
 
 - **数据不出端**：图像解码、水印绘制与编码全部在浏览器本地完成，图片不上传、无遥测、无用户数据采集。
 - **零依赖**：原生 HTML / CSS / JavaScript，无框架、无 npm 依赖、无必需构建步骤。
-- **完整取证要素**：时间、经纬度、坐标系（WGS84 / GCJ-02）、地理位置、拍摄人、备注，全部可自动获取或手动修正。
+- **完整取证要素**：时间、经纬度（**统一 WGS84**）、地理位置、拍摄人、备注，全部可自动获取或手动修正。
 - **多形态分发**：在线 PWA、单文件 HTML、本地静态服务、Android APK 四种部署方式。
 - **离线可用**：PWA 侧由 Service Worker 缓存应用外壳；APK 侧 Web 资源内置，完全离线可运行。
 - **双主题 UI**：基于 [Miuix](https://github.com/compose-miuix-ui/miuix)（HyperOS 风格）官方色板，跟随系统明暗模式自动切换。
@@ -70,7 +70,7 @@
 |  | Miuix 设计语言主题（双主题 CSS 变量） |
 |  | 默认参数、导出画质、AMap Key 读写 |
 |  | 时间格式化、中英混排文字测量、圆角矩形 |
-|  | 浏览器定位、地址逆地理、地址转经纬度 |
+|  | 浏览器定位、地址逆地理、地址转经纬度、**GCJ-02 ⇄ WGS84 本地转换** |
 |  | 摄像头启停与抓帧 |
 |  | 水印绘制，仅依赖状态与画布，无 DOM 耦合 |
 |  | 网页版 UI 绑定与主流程 |
@@ -101,8 +101,7 @@ Key 仅写入浏览器 （键名 ），不会进入任何源码文件或远端�
 | 字段 | 来源 | 说明 |
 |------|------|------|
 | 时间 | 自动 / 手动 | 导入图片或点击「现在」时刷新，可手改 |
-| 纬度 / 经度 | 自动 / 手动 | 浏览器定位或地址编码，可手改 |
-| 坐标系 | 自动 | WGS84（浏览器定位）/ GCJ-02（高德编码），见 5.3 |
+| 纬度 / 经度 | 自动 / 手动 | 浏览器定位或高德地址编码（GCJ-02 结果本地转为 WGS84），可手改 |
 | 地址 | 自动 / 手动 | 逆地理反查或手填 |
 | 拍摄人 / ID、备注 | 手动 | 填写后方渲染至水印 |
 
@@ -116,16 +115,18 @@ Key 仅写入浏览器 （键名 ），不会进入任何源码文件或远端�
 
 可调项：中央水印 / 弧形水印（文字可自定义）/ 时间 / 经纬度 / 地址开关、底衬开关、字号缩放（1.2–5.0）。导出始终为**原图分辨率 + JPEG 95%**，不受预览尺寸影响。
 
-### 5.3 坐标系约束
+### 5.3 坐标系说明（固定 WGS84）
 
-- 浏览器定位返回 **WGS84**，「地址转经纬度」返回高德 **GCJ-02**；二者在国内存在数十至上百米偏移。
-- 手动修改过经纬度时，请同步核对坐标系选择，避免混用。
+- 浏览器定位原生返回 **WGS84**，直接使用；
+- 高德地理编码返回 **GCJ-02**， 在本地用国测局椭球参数转换为 **WGS84** 后再进入水印，境外坐标原样返回；
+- 逆地理反查（地址）时入参先由 WGS84 转成 GCJ-02 发给高德，保证反查地址准确，返回的地址不携带坐标系差异；
+- 坐标系选择功能已移除，**全链路固定 WGS84**，水印恒显示「坐标系：WGS84坐标系」，不存在混用风险。
 
 ---
 
 ## 六、设计规范
 
-UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（）项目  中的官方  /  色板：主色 （浅色）/ （深色），深色背景 ，字体栈 MiSans → HarmonyOS Sans SC → PingFang SC。通过  自动切换，顶栏使用毛玻璃（backdrop-filter），卡片圆角 24px。
+UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（）项目  中的官方  /  色板：主色 （浅色）/ （深色），深色背景 ，字体栈 MiSans → HarmonyOS Sans SC → PingFang SC。通过  自动切换，顶栏使用毛玻璃（backdrop-filter），卡片圆角 24px；App 编辑面板为 HyperOS 设置式分组布局。
 
 ---
 
@@ -162,6 +163,7 @@ UI 采用 [Miuix](https://github.com/compose-miuix-ui/miuix)（）项目  中的
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v1.4.1 | 2026-10-22 | 坐标全链路固定 WGS84： 增加 GCJ-02 ⇄ WGS84 本地转换（编码出参转 WGS、反查入参转 GCJ），移除坐标系选择 UI，状态文案与水印恒为 WGS84；App 侧同步 |
 | v1.4.0 | 2026-10-22 | App 首页改为全屏相机水印页（app.html）：实时取景叠加、点按编辑面板、快门拍照经原生桥存相册；与网页版 index.html 分离，底栏可互跳 |
 | v1.3.0 | 2026-10-22 | APK 本地内置 Web 资源（完全离线可用）； 启动静默增量更新、失败整体回退；CI 构建同步网页资源；壳环境跳过 SW 注册 |
 | v1.2.0 | 2026-10-22 | Miuix 设计语言改版：官方双主题色板、毛玻璃顶栏、PWA 图标与主题色同步，SW 缓存升 v2 |
