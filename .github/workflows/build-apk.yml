@@ -1,5 +1,5 @@
 # 推送 android/ 或网页文件变更时自动构建 APK，产物在 Actions 运行页的 Artifacts 里下载
-# 失败时把 Gradle 报错尾部转为 annotations，便于通过 API 直接读取错误原因
+# 失败诊断：环境探测 + 错误摘要写入 commit status（API 可读），完整日志尾部自动开 issue
 name: Build APK
 
 on:
@@ -17,6 +17,11 @@ on:
       - 'sw.js'
       - 'version.json'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+  issues: write
 
 jobs:
   build:
@@ -43,11 +48,32 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build debug APK
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -o pipefail
+          ENVDESC="sdk=${ANDROID_HOME:-none}|sdkdir=$(test -d /usr/local/lib/android/sdk && echo yes || echo no)|$(java -version 2>&1 | head -1 | tr -d '"' | tr '\n' ' ')"
+          ENVDESC=$(printf '%s' "$ENVDESC" | tr -d '"\\' | cut -c1-130)
+          curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -d "{\"state\":\"success\",\"context\":\"env-check\",\"description\":\"$ENVDESC\"}" > /dev/null
+
           gradle -p android :app:assembleDebug --no-daemon > build.log 2>&1 || {
-            echo "::error title=GradleError::"
-            grep -E "error:|What went wrong|Execution failed|Could not|Caused by" build.log | tail -10 | while IFS= read -r l; do echo "::error::"; done
+            ERR1=$(grep -m1 -A2 "What went wrong" build.log | tr '\n' ' ' | tr -d '"\\' | cut -c1-130)
+            ERR2=$(grep -E "error:|Execution failed|Could not|Caused by|FAILURE" build.log | tail -6 | tr '\n' ' ' | tr -d '"\\' | cut -c1-130)
+            for P in "gradle-error-task|$ERR1" "gradle-error-detail|$ERR2"; do
+              CTX="${P%%|*}"; DESC="${P#*|}"
+              curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+                "https://api.github.com/repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+                -d "{\"state\":\"failure\",\"context\":\"$CTX\",\"description\":\"$DESC\"}" > /dev/null
+            done
+            if command -v jq > /dev/null; then
+              { echo "## CI Gradle build failed"; echo; echo "commit: $GITHUB_SHA"; echo; echo '```'; tail -n 120 build.log; echo '```'; } > /tmp/err.md
+              jq -n --rawfile b /tmp/err.md --arg t "CI: Gradle build failed" '{title:$t,body:$b}' > /tmp/issue.json
+              curl -sS -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$GITHUB_REPOSITORY/issues" -d @/tmp/issue.json > /dev/null
+            fi
+            echo "::error::gradle failed, see env-check/gradle-error statuses"
             exit 1
           }
 
